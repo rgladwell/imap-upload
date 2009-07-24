@@ -33,12 +33,12 @@ class MyOptionParser(OptionParser):
         self.add_option("--host", 
                         help="destination hostname [default: %default]")
         self.add_option("--port", type="int", 
-                        help="destination port number [default: %default]")
+                        help="destination port number [default: 143, 993 for SSL]")
         self.add_option("--ssl", action="store_true", 
                         help="use SSL connection")
         self.add_option("--box", 
                         help="destination mail box name [default: %default]")
-        self.add_option("--user", help="login name [default: %default]")
+        self.add_option("--user", help="login name [default: empty]")
         self.add_option("--password", help="login password")
         self.add_option("--retry", type="int", metavar="COUNT", 
                         help="retry COUNT times on connection abort. "
@@ -46,7 +46,6 @@ class MyOptionParser(OptionParser):
         self.add_option("--error", metavar="ERR_MBOX", 
                         help="append failured messages to the file ERR_MBOX")
         self.set_defaults(host="localhost",
-                          port=143,
                           ssl=False,
                           user="",
                           password="",
@@ -69,6 +68,8 @@ class MyOptionParser(OptionParser):
             dest = self.parse_dest(args[1])
             for (k, v) in dest.__dict__.iteritems():
                 setattr(options, k, v)
+        if options.port is None:
+            options.port = [143, 993][options.ssl]
         options.src = args[0]
         return options
 
@@ -79,6 +80,7 @@ class MyOptionParser(OptionParser):
             options = optparse.Values()
             options.ssl = bool(ssl)
             options.host = dest.hostname
+            options.port = [143, 993][options.ssl]
             if dest.port:
                 options.port = dest.port
             if dest.username:
@@ -159,7 +161,7 @@ class IMAPUploader:
         self.password = password
         self.retry = retry
 
-    def upload(self, delivery_time, message, retry = None):
+    def upload(self, delivery_time, message, retry=None):
         if retry is None:
             retry = self.retry
         try:
