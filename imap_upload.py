@@ -1,12 +1,17 @@
+import codecs
 import email
+import email.header
 import getpass
 import imaplib
+import locale
 import mailbox
+import math
 import optparse
 import re
 import socket
 import sys
 import time
+import unicodedata
 import urllib
 from optparse import OptionParser
 from urlparse import urlparse
@@ -97,31 +102,109 @@ class MyOptionParser(OptionParser):
         raise optparse.OptParseError(self.get_usage() + "\n" + msg)
 
 
+def si_prefix(n, prefixes=("", "k", "M", "G", "T", "P", "E", "Z", "Y"), 
+              block=1024, threshold=1):
+    """Get SI prefix and reduced number."""
+    if (n < block * threshold or len(prefixes) == 1):
+        return (n, prefixes[0])
+    return si_prefix(n / block, prefixes[1:])
+
+
+def str_width(s):
+    """Get string width."""
+    w = 0
+    for c in unicode(s):
+        w += 1 + (unicodedata.east_asian_width(c) in "FWA")
+    return w
+
+
+def trim_width(s, width):
+    """Get truncated string with specified width."""
+    trimed = []
+    for c in unicode(s):
+        width -= str_width(c)
+        if width <= 0:
+            break
+        trimed.append(c)
+    return "".join(trimed)
+
+
+def left_fit_width(s, width, fill=' '):
+    """Make a string fixed width by padding or truncating.
+
+    Note: fill can't be full width character.
+    """
+    s = trim_width(s, width)
+    s += fill * (width - str_width(s))
+    return s
+
+
+class Progress():
+    """Store and output progress information."""
+
+    def __init__(self, total_count):
+        self.total_count = total_count
+        self.ok_count = 0
+        self.count = 0
+        self.format = "%" + str(len(str(total_count))) + "d/" + \
+                      str(total_count) + " %5.1f %-2s  %s  "
+
+    def begin(self, msg):
+        """Called when start proccessing of a new message."""
+        self.time_began = time.time()
+        size, prefix = si_prefix(float(len(msg.as_string())), threshold=0.8)
+        sbj = self.decode_subject(msg["subject"] or "")
+        print >>sys.stderr, self.format % \
+              (self.count + 1, size, prefix + "B", left_fit_width(sbj, 30)),
+
+    def decode_subject(self, sbj):
+        decoded = []
+        try:
+            parts = email.header.decode_header(sbj)
+            for s, codec in parts:
+                decoded.append(s.decode(codec or "ascii"))
+        except Exception, e:
+            pass
+        return "".join(decoded)
+
+    def endOk(self):
+        """Called when a message was processed successfully."""
+        self.count += 1
+        self.ok_count += 1
+        print >>sys.stderr, "OK (%d sec)" % \
+              math.ceil(time.time() - self.time_began)
+
+    def endNg(self, err):
+        """Called when an error has occurred while processing a message."""
+        print >>sys.stderr, "NG (%s)" % err
+
+    def endAll(self):
+        """Called when all message was processed."""
+        print >>sys.stderr, "Done. (OK: %d, NG: %d)" % \
+              (self.ok_count, self.total_count - self.ok_count)
+
+
 def upload(imap, src, err):
     print >>sys.stderr, \
           "Counting the mailbox (it could take a while for the large one)."
-    total_count = len(src)
-    ok_count = 0
+    p = Progress(len(src))
     for i, msg in src.iteritems():
-        print >>sys.stderr, str(i + 1) + "/" + str(total_count), 
         try:
-            delivery_time = msg.get_delivery_time()
-            r, r2 = imap.upload(delivery_time, msg.as_string(), 3)
+            p.begin(msg)
+            r, r2 = imap.upload(msg.get_delivery_time(), msg.as_string(), 3)
             if r != "OK":
                 raise Exception(r2[0]) # FIXME: Should use custom class
-            ok_count += 1
-            print >>sys.stderr, "OK"
+            p.endOk()
             continue
         except InvalidDeliveryTime, e:
-            print >>sys.stderr, "NG: Invalid delivery time: ", e
+            p.endNg("Invalid delivery time: " + str(e))
         except socket.error, e:
-            print >>sys.stderr, "NG: Socket error: ", e
+            p.endNg("Socket error: " + str(e))
         except Exception, e:
-            print >>sys.stderr, "NG:", e
+            p.endNg(e)
         if err is not None:
             err.add(msg)
-        
-    print >>sys.stderr, "Done. (OK: %d, NG: %d)" % (ok_count, total_count - ok_count)
+    p.endAll()
 
 
 class InvalidDeliveryTime(Exception):
@@ -161,7 +244,7 @@ class IMAPUploader:
         self.password = password
         self.retry = retry
 
-    def upload(self, delivery_time, message, retry=None):
+    def upload(self, delivery_time, message, retry = None):
         if retry is None:
             retry = self.retry
         try:
@@ -189,8 +272,14 @@ class IMAPUploader:
         self.imap.shutdown()
         self.imap = None
 
+
 def main(args=None):
     try:
+        # Setup locale and encoding of the sys.stderr
+        locale.setlocale(locale.LC_ALL, "")
+        enc = locale.getlocale()[1] or "utf_8"
+        sys.stderr = codecs.lookup(enc)[-1](sys.stderr, errors="ignore")
+
         # Parse arguments
         if args is None:
             args = sys.argv[1:]
