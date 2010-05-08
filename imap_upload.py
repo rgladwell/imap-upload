@@ -218,15 +218,15 @@ def get_delivery_time(self):
     not to work in Python 2.5.4.
     """
     try:
-        time_str = re.sub(r'^[^ ]* (.{24}).*', r'\1', self.get_from())
-        try:
-            t = time.strptime(time_str, "%a %b %d %H:%M:%S %Y")
-            t = time.mktime(t)
-            return t
-        except:
-            t = email.utils.parsedate_tz(time_str)
-            t = email.utils.mktime_tz(t)
-            return t
+        time_str = self.get_from().split(" ", 1)[1]
+        t = time_str.replace(",", " ").lower()
+        t = re.sub(" (sun|mon|tue|wed|thu|fri|sat) ", " ", 
+                   " " + t + " ")
+        if t.find(":") == -1:
+            t += " 00:00:00"
+        t = email.utils.parsedate_tz(t)
+        t = email.utils.mktime_tz(t)
+        return t
     except:
         raise InvalidDeliveryTime(time_str)
 
@@ -275,8 +275,12 @@ class IMAPUploader:
 
 def main(args=None):
     try:
-        # Setup locale and encoding of the sys.stderr
+        # Setup locale
+        # Set LC_TIME to "C" so that imaplib.Time2Internaldate() 
+        # uses English month name.
         locale.setlocale(locale.LC_ALL, "")
+        locale.setlocale(locale.LC_TIME, "C")
+        #  Encoding of the sys.stderr
         enc = locale.getlocale()[1] or "utf_8"
         sys.stderr = codecs.lookup(enc)[-1](sys.stderr, errors="ignore")
 
