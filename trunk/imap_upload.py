@@ -196,8 +196,6 @@ def upload(imap, src, err):
                 raise Exception(r2[0]) # FIXME: Should use custom class
             p.endOk()
             continue
-        except InvalidDeliveryTime, e:
-            p.endNg("Invalid delivery time: " + str(e))
         except socket.error, e:
             p.endNg("Socket error: " + str(e))
         except Exception, e:
@@ -207,29 +205,57 @@ def upload(imap, src, err):
     p.endAll()
 
 
-class InvalidDeliveryTime(Exception):
-    """The delivery time in the From_ line is malformatted."""
-
 def get_delivery_time(self):
-    """Extract delivery time from the From_ line. 
-    
-    Directly attach to the mailbox.mboxMessage as a method 
-    because the factory parameter of mailbox.mbox() seems
-    not to work in Python 2.5.4.
+    """Extract delivery time from message.
+
+    Try to extract the time data in this order:
+      1. From_ line
+      2. The first "Received:" field
+      3. "Date:" field
+      4. The current time
     """
-    try:
+    def get_from_time(self):
+        """Extract the time from From_ line."""
         time_str = self.get_from().split(" ", 1)[1]
         t = time_str.replace(",", " ").lower()
         t = re.sub(" (sun|mon|tue|wed|thu|fri|sat) ", " ", 
                    " " + t + " ")
         if t.find(":") == -1:
             t += " 00:00:00"
-        t = email.utils.parsedate_tz(t)
-        t = email.utils.mktime_tz(t)
         return t
-    except:
-        raise InvalidDeliveryTime(time_str)
+    def get_received_time(self):
+        """Extract the time from the first "Received:" field."""
+        t = self["received"]
+        t = t.split(";", 1)[1]
+        t = t.lstrip()
+        return t
+    def get_date_time(self):
+        """Extract the time from "Date:" field."""
+        return self["date"]
 
+    for get_time in [get_from_time, 
+                     get_received_time, 
+                     get_date_time]:
+        try:
+            t = get_time(self)
+            t = email.utils.parsedate_tz(t)
+            t = email.utils.mktime_tz(t)
+            # Do not allow the time before 1970-01-01 because 
+            # some IMAP server (i.e. Gmail) ignore it, and 
+            # some MUA (Outlook Express?) set From_ date to 
+            # 1965-01-01 for all messages.
+            if t < 0:
+                continue
+            return t
+        except:
+            pass
+    # All failed. Return current time.
+    return time.time()
+
+# Directly attach get_delivery_time() to the mailbox.mboxMessage
+# as a method. 
+# I want to use the factory parameter of mailbox.mbox() 
+# but it seems not to work in Python 2.5.4.
 mailbox.mboxMessage.get_delivery_time = get_delivery_time
 
 
