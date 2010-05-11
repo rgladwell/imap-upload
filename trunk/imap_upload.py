@@ -50,19 +50,40 @@ class MyOptionParser(OptionParser):
                              "0 disables [default: %default]")
         self.add_option("--error", metavar="ERR_MBOX", 
                         help="append failured messages to the file ERR_MBOX")
+        self.add_option("--time-fields", metavar="LIST", type="string", nargs=1,
+                        action="callback", callback=self.set_time_fields,
+                        help="try to get delivery time of message from "
+                             "the fields in the LIST. "
+                             'Specify any of "from", "received" and '
+                             '"date" separated with comma in order of '
+                             'priority (e.g. "date,received"). '
+                             '"from" is From_ line of mbox format. '
+                             '"received" is "Received:" field and "date" '
+                             'is "Date:" field in RFC 2822. '
+                             '[default: from,received,date]')
         self.set_defaults(host="localhost",
                           ssl=False,
                           user="",
                           password="",
                           box="INBOX", 
                           retry=0,
-                          error=None)
+                          error=None, 
+                          time_fields=["from", "received", "date"])
     def enable_gmail(self, option, opt_str, value, parser):
         parser.values.ssl = True
         parser.values.host = "imap.gmail.com"
         parser.values.port = 993
         parser.values.retry = 3
-        
+
+    def set_time_fields(self, option, opt_str, value, parser):
+        fields = []
+        if value != "":
+            fields = value.split(",")
+        # Assert that list contains only valid fields
+        if set(fields) - set(["from", "received", "date"]):
+            self.error("Invalid value '%s' for --time-fields" % value)
+        self.values.time_fields = fields
+
     def parse_args(self, args):
         (options, args) = OptionParser.parse_args(self, args)
         if len(args) < 1:
@@ -184,14 +205,15 @@ class Progress():
               (self.ok_count, self.total_count - self.ok_count)
 
 
-def upload(imap, src, err):
+def upload(imap, src, err, time_fields):
     print >>sys.stderr, \
           "Counting the mailbox (it could take a while for the large one)."
     p = Progress(len(src))
     for i, msg in src.iteritems():
         try:
             p.begin(msg)
-            r, r2 = imap.upload(msg.get_delivery_time(), msg.as_string(), 3)
+            r, r2 = imap.upload(msg.get_delivery_time(time_fields), 
+                                msg.as_string(), 3)
             if r != "OK":
                 raise Exception(r2[0]) # FIXME: Should use custom class
             p.endOk()
@@ -205,14 +227,16 @@ def upload(imap, src, err):
     p.endAll()
 
 
-def get_delivery_time(self):
+def get_delivery_time(self, fields):
     """Extract delivery time from message.
 
-    Try to extract the time data in this order:
-      1. From_ line
-      2. The first "Received:" field
-      3. "Date:" field
-      4. The current time
+    Try to extract the time data from given fields of message.
+    The fields is a list and can consist of any of the following:
+      * "from"      From_ line of mbox format.
+      * "received"  The first "Received:" field in RFC 2822.
+      * "date"      "Date:" field in RFC 2822.
+    Return the current time if the fields is empty or no field 
+    had valid value.
     """
     def get_from_time(self):
         """Extract the time from From_ line."""
@@ -233,11 +257,9 @@ def get_delivery_time(self):
         """Extract the time from "Date:" field."""
         return self["date"]
 
-    for get_time in [get_from_time, 
-                     get_received_time, 
-                     get_date_time]:
+    for field in fields:
         try:
-            t = get_time(self)
+            t = vars()["get_" + field + "_time"](self)
             t = email.utils.parsedate_tz(t)
             t = email.utils.mktime_tz(t)
             # Do not allow the time before 1970-01-01 because 
@@ -323,6 +345,7 @@ def main(args=None):
         options = options.__dict__
         src = options.pop("src")
         err = options.pop("error")
+        time_fields = options.pop("time_fields")
         # Connect to the server and login
         print >>sys.stderr, \
               "Connecting to %s:%s." % (options["host"], options["port"])
@@ -334,7 +357,7 @@ def main(args=None):
             err = mailbox.mbox(err)
         # Upload
         print >>sys.stderr, "Uploading..."
-        upload(uploader, src, err)
+        upload(uploader, src, err, time_fields)
         return 0
     except optparse.OptParseError, e:
         print >>sys.stderr, e
