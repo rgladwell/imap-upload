@@ -16,7 +16,7 @@ import urllib
 from optparse import OptionParser
 from urlparse import urlparse
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 if sys.version_info < (2, 5):
     print >>sys.stderr, "IMAP Upload requires Python 2.5 or later."
