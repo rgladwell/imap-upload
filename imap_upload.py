@@ -297,6 +297,7 @@ class IMAPUploader:
             retry = self.retry
         try:
             self.open()
+            self.imap.create(self.box)
             return self.imap.append(self.box, [], delivery_time, message)
         except (imaplib.IMAP4.abort, socket.error):
             self.close()
