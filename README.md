@@ -6,6 +6,7 @@ IMAP Upload is a tool for uploading a local mbox file to IMAP4 server. The most 
 
 ### Features
 
+*   Recursively import mbox sub-folders, currently supports Mac Mail MBOX export folder format.
 *   Read messages stored in mbox format which is used by many mail clients such as Thunderbird.
 *   Upload messages to IMAP4 server.
 *   Preserve the delivery time of the message. (support date time in From_ line / &ldquo;Received:&rdquo; field / &ldquo;Date:&rdquo; field)
@@ -45,6 +46,12 @@ There's an `--error` option so that you can store the failed messages in mbox fo
 
 ```sh
 python imap_upload.py --gmail --box imported --error Friends.err Friends.mbox
+```
+
+You can also recursively import mbox sub-folders using th `-r` option:
+
+```
+python imap_upload.py --gmail -r path
 ```
 
 For more details, please refer to the --help message:

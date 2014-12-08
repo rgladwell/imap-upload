@@ -13,10 +13,11 @@ import sys
 import time
 import unicodedata
 import urllib
+import os
 from optparse import OptionParser
 from urlparse import urlparse
 
-__version__ = "1.2"
+__version__ = "1.3"
 
 if sys.version_info < (2, 5):
     print >>sys.stderr, "IMAP Upload requires Python 2.5 or later."
@@ -24,12 +25,15 @@ if sys.version_info < (2, 5):
 
 class MyOptionParser(OptionParser):
     def __init__(self):
-        usage = "usage: python %prog [options] MBOX [DEST]\n"\
+        usage = "usage: python %prog [options] (MBOX|-r MBOX_FOLDER) [DEST]\n"\
                 "  MBOX UNIX style mbox file.\n"\
+                "  MBOX_FOLDER folder containing subfolder trees of mbox files\n"\
                 "  DEST is imap[s]://[USER[:PASSWORD]@]HOST[:PORT][/BOX]\n"\
                 "  DEST has a priority over the options."
         OptionParser.__init__(self, usage,
                               version="IMAP Upload " + __version__)
+        self.add_option("-r", action="store_true",
+                        help="recursively search sub-folders")
         self.add_option("--gmail", action="callback", nargs=0, 
                         callback=self.enable_gmail, 
                         help="setup for Gmail. Equivalents to "
@@ -63,6 +67,7 @@ class MyOptionParser(OptionParser):
                              '[default: from,received,date]')
         self.set_defaults(host="localhost",
                           ssl=False,
+                          r=False,
                           user="",
                           password="",
                           box="INBOX", 
@@ -205,14 +210,15 @@ class Progress():
               (self.ok_count, self.total_count - self.ok_count)
 
 
-def upload(imap, src, err, time_fields):
+def upload(imap, box, src, err, time_fields):
+    print >>sys.stderr, "Uploading to {}...".format(box)
     print >>sys.stderr, \
           "Counting the mailbox (it could take a while for the large one)."
     p = Progress(len(src))
     for i, msg in src.iteritems():
         try:
             p.begin(msg)
-            r, r2 = imap.upload(msg.get_delivery_time(time_fields), 
+            r, r2 = imap.upload(box, msg.get_delivery_time(time_fields), 
                                 msg.as_string(), 3)
             if r != "OK":
                 raise Exception(r2[0]) # FIXME: Should use custom class
@@ -225,6 +231,24 @@ def upload(imap, src, err, time_fields):
         if err is not None:
             err.add(msg)
     p.endAll()
+
+
+def recursive_upload(imap, box, src, err, time_fields):
+    for file in os.listdir(src):
+        path = src + os.sep + file
+        if os.path.isdir(path):
+            fileName, fileExtension = os.path.splitext(file)
+            if not box:
+                subbox = fileName
+            else:
+                subbox = box + "/" + fileName
+            recursive_upload(imap, subbox, path, err, time_fields)
+        elif file.endswith("mbox"):
+            print >>sys.stderr, "Found mailbox at {}...".format(path)
+            mbox = mailbox.mbox(path, create=False)
+            if err:
+                err = mailbox.mbox(err)
+            upload(imap, box, mbox, err, time_fields)
 
 
 def get_delivery_time(self, fields):
@@ -287,25 +311,24 @@ class IMAPUploader:
         self.host = host
         self.port = port
         self.ssl = ssl
-        self.box = box
         self.user = user
         self.password = password
         self.retry = retry
 
-    def upload(self, delivery_time, message, retry = None):
+    def upload(self, box, delivery_time, message, retry = None):
         if retry is None:
             retry = self.retry
         try:
             self.open()
-            self.imap.create(self.box)
-            return self.imap.append(self.box, [], delivery_time, message)
+            self.imap.create(box)
+            return self.imap.append(box, [], delivery_time, message)
         except (imaplib.IMAP4.abort, socket.error):
             self.close()
             if retry == 0:
                 raise
         print >>sys.stderr, "(Reconnect)",
         time.sleep(5)
-        return self.upload(delivery_time, message, retry - 1)
+        return self.upload(box, delivery_time, message, retry - 1)
 
     def open(self):
         if self.imap:
@@ -347,19 +370,26 @@ def main(args=None):
         src = options.pop("src")
         err = options.pop("error")
         time_fields = options.pop("time_fields")
+
+        recurse = options.pop("r")
+
         # Connect to the server and login
         print >>sys.stderr, \
               "Connecting to %s:%s." % (options["host"], options["port"])
         uploader = IMAPUploader(**options)
         uploader.open()
-        # Prepare source and error mbox
-        src = mailbox.mbox(src, create=False)
-        if err:
-            err = mailbox.mbox(err)
-        # Upload
-        print >>sys.stderr, "Uploading..."
-        upload(uploader, src, err, time_fields)
+
+        if(not recurse):
+            # Prepare source and error mbox
+            src = mailbox.mbox(src, create=False)
+            if err:
+                err = mailbox.mbox(err)
+                upload(uploader, options["box"], src, err, time_fields)
+        else:
+            recursive_upload(uploader, "", src, err, time_fields)
+
         return 0
+
     except optparse.OptParseError, e:
         print >>sys.stderr, e
         return 2
