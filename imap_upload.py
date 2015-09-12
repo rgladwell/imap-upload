@@ -384,7 +384,7 @@ def main(args=None):
             src = mailbox.mbox(src, create=False)
             if err:
                 err = mailbox.mbox(err)
-                upload(uploader, options["box"], src, err, time_fields)
+            upload(uploader, options["box"], src, err, time_fields)
         else:
             recursive_upload(uploader, "", src, err, time_fields)
 
