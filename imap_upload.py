@@ -338,6 +338,11 @@ class IMAPUploader:
         self.imap.socket().settimeout(60)
         self.imap.login(self.user, self.password)
 
+        try:
+            self.imap.create(self.box)
+        except Exception, e:
+            print >>sys.stderr, "(create error: )" + str(e)
+
     def close(self):
         if not self.imap:
             return
