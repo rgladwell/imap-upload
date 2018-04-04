@@ -39,6 +39,11 @@ class MyOptionParser(OptionParser):
                         help="setup for Gmail. Equivalents to "
                              "--host=imap.gmail.com --port=993 "
                              "--ssl --retry=3")
+        self.add_option("--office365", action="callback", nargs=0, 
+                        callback=self.enable_office365, 
+                        help="setup for Office365. Equivalents to "
+                             "--host=outlook.office365.com --port=993 "
+                             "--ssl --retry=3")
         self.add_option("--host", 
                         help="destination hostname [default: %default]")
         self.add_option("--port", type="int", 
@@ -77,6 +82,12 @@ class MyOptionParser(OptionParser):
     def enable_gmail(self, option, opt_str, value, parser):
         parser.values.ssl = True
         parser.values.host = "imap.gmail.com"
+        parser.values.port = 993
+        parser.values.retry = 3
+
+    def enable_office365(self, option, opt_str, value, parser):
+        parser.values.ssl = True
+        parser.values.host = "outlook.office365.com"
         parser.values.port = 993
         parser.values.retry = 3
 
