@@ -325,6 +325,7 @@ class IMAPUploader:
         self.user = user
         self.password = password
         self.retry = retry
+        self.box = box
 
     def upload(self, box, delivery_time, message, retry = None):
         if retry is None:
