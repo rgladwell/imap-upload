@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# coding=utf-8
 import codecs
 import email
 import email.header
@@ -70,6 +72,8 @@ class MyOptionParser(OptionParser):
                              '"received" is "Received:" field and "date" '
                              'is "Date:" field in RFC 2822. '
                              '[default: from,received,date]')
+        self.add_option("--list_boxes", action="store_true",
+                        help="list all mail boxes in the IMAP server")
         self.set_defaults(host="localhost",
                           ssl=False,
                           r=False,
@@ -102,7 +106,7 @@ class MyOptionParser(OptionParser):
 
     def parse_args(self, args):
         (options, args) = OptionParser.parse_args(self, args)
-        if len(args) < 1:
+        if len(args) < 1 and not options.list_boxes:
             self.error("Missing MBOX")
         if len(args) > 2:
             self.error("Extra argument")
@@ -112,7 +116,9 @@ class MyOptionParser(OptionParser):
                 setattr(options, k, v)
         if options.port is None:
             options.port = [143, 993][options.ssl]
-        options.src = args[0]
+        if not options.list_boxes:
+            options.src = args[0]
+
         return options
 
     def parse_dest(self, dest):
@@ -261,6 +267,29 @@ def recursive_upload(imap, box, src, err, time_fields):
                 err = mailbox.mbox(err)
             upload(imap, box, mbox, err, time_fields)
 
+def pretty_print_mailboxes(boxes):
+    for box in boxes:
+        x = re.search("\(((\\\\[A-Za-z]+\s*)+)\) \"(.)\" \"(.*?)\"",box)
+        raw_name = x.group(4)
+        sep = x.group(3)
+        raw_flags = x.group(1)
+        #print pretty_mailboxes_name(raw_name, sep) + "\t\t\t\t\t" + pretty_flags(raw_flags)
+        print "{:40s}{}".format(pretty_mailboxes_name(raw_name, sep), pretty_flags(raw_flags))
+
+def pretty_mailboxes_name(name, sep):
+    depth = name.count(sep)
+    spacer = "  "
+    branch = "+- " if (depth>0) else ""
+    slash = name.rfind(sep)
+    clean_name = name if (slash == -1) else name[slash+1:]
+    return "{0}{1}\"{2}\"".format( spacer*depth, branch, clean_name)
+
+def pretty_flags(raw_flags):
+    flags = raw_flags.replace("\\HasChildren", "")
+    flags = flags.replace("\\HasNoChildren", "")
+    flags = flags.replace("\\", "#")
+    flags = flags.split()
+    return "\t".join(flags)
 
 def get_delivery_time(self, fields):
     """Extract delivery time from message.
@@ -361,6 +390,14 @@ class IMAPUploader:
         self.imap.shutdown()
         self.imap = None
 
+    def list_boxes(self):
+        try:
+            self.open()
+            status, mailboxes = self.imap.list()
+            return mailboxes
+        except (imaplib.IMAP4.abort, socket.error):
+            self.close()
+
 
 def main(args=None):
     try:
@@ -384,7 +421,7 @@ def main(args=None):
         if len(str(options.password)) == 0:
             options.password = getpass.getpass()
         options = options.__dict__
-        src = options.pop("src")
+        list_boxes = options.pop("list_boxes")
         err = options.pop("error")
         time_fields = options.pop("time_fields")
 
@@ -393,17 +430,27 @@ def main(args=None):
         # Connect to the server and login
         print >>sys.stderr, \
               "Connecting to %s:%s." % (options["host"], options["port"])
-        uploader = IMAPUploader(**options)
-        uploader.open()
 
-        if(not recurse):
-            # Prepare source and error mbox
-            src = mailbox.mbox(src, create=False)
-            if err:
-                err = mailbox.mbox(err)
-            upload(uploader, options["box"], src, err, time_fields)
+        if (list_boxes):
+            print("Just list mail boxes!")
+
+            uploader = IMAPUploader(**options)
+            uploader.open()
+            pretty_print_mailboxes(uploader.list_boxes())
         else:
-            recursive_upload(uploader, "", src, err, time_fields)
+            src = options.pop("src")
+
+            uploader = IMAPUploader(**options)
+            uploader.open()
+
+            if(not recurse):
+                # Prepare source and error mbox
+                src = mailbox.mbox(src, create=False)
+                if err:
+                    err = mailbox.mbox(err)
+                upload(uploader, options["box"], src, err, time_fields)
+            else:
+                recursive_upload(uploader, "", src, err, time_fields)
 
         return 0
 
