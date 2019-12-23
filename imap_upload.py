@@ -423,7 +423,8 @@ def main(args=None):
         print >>sys.stderr, "Interrupted"
         return 130
     except Exception, e:
-        print >>sys.stderr, "An unknown error has occurred: ", e
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        print >>sys.stderr, "An unknown error has occurred [{}]: ".format(exc_tb.tb_lineno), e
         return 1
 
 
