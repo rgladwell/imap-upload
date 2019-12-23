@@ -105,7 +105,7 @@ class MyOptionParser(OptionParser):
         if len(args) < 1:
             self.error("Missing MBOX")
         if len(args) > 2:
-            self.error("Extra argugment")
+            self.error("Extra argument")
         if len(args) > 1:
             dest = self.parse_dest(args[1])
             for (k, v) in dest.__dict__.iteritems():
@@ -345,7 +345,7 @@ class IMAPUploader:
     def open(self):
         if self.imap:
             return
-        imap_class = [imaplib.IMAP4, imaplib.IMAP4_SSL][self.ssl];
+        imap_class = [imaplib.IMAP4, imaplib.IMAP4_SSL][self.ssl]
         self.imap = imap_class(self.host, self.port)
         self.imap.socket().settimeout(60)
         self.imap.login(self.user, self.password)
