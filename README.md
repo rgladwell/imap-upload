@@ -42,6 +42,12 @@ You can use a shortcut option for the Gmail server:
 python imap_upload.py --gmail --box imported Friends.mbox
 ```
 
+You can use a shortcut option for the Office 365 server:
+
+```sh
+python imap_upload.py --office365 --box imported Friends.mbox
+```
+
 There's an `--error` option so that you can store the failed messages in mbox format and retry for them later:
 
 ```sh
@@ -52,6 +58,16 @@ You can also recursively import mbox sub-folders using th `-r` option:
 
 ```
 python imap_upload.py --gmail -r path
+```
+
+You can use just output the account's mailboxes (folders/labels) list. This is useful if you need to upload to an existing special mailbox (i.e.: Gmail's Send Email label, when using a language different from English):
+
+```sh
+python imap_upload.py --gmail --list_boxes
+```
+If you prefer a tree-like view of the mailboxes:
+```sh
+python imap_upload.py --gmail --list_boxes --treeview
 ```
 
 For more details, please refer to the --help message:
