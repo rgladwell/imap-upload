@@ -47,7 +47,8 @@ class MyOptionParser(OptionParser):
                              "--host=outlook.office365.com --port=993 "
                              "--ssl --retry=3")
         self.add_option("--email-only-folders", action="store_true",  
-                        help="use for servers that do not allow storing emails and subfolders in the same folder")
+                        help="use for servers that do not allow storing emails and subfolders in the same folder"
+                            "only works with -r")
         self.add_option("--host", 
                         help="destination hostname [default: %default]")
         self.add_option("--port", type="int", 
