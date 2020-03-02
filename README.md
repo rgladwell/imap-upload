@@ -12,6 +12,7 @@ IMAP Upload is a tool for uploading a local mbox file to IMAP4 server. The most 
 *   Preserve the delivery time of the message. (support date time in From_ line / &ldquo;Received:&rdquo; field / &ldquo;Date:&rdquo; field)
 *   Automatic retry when the connection was aborted which happens frequently on Gmail.
 *   Can write out failed messages in mbox format. (Easy to retry for the failed messages)
+*   Supports IMAP servers that can only store either folders or emails in a folder
 *   Support SSL.
 *   Run on Windows, Mac OS X, Linux, *BSD, and so on.
 *   Command line interface. (No friendly GUI, sorry...)
