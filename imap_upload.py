@@ -46,6 +46,9 @@ class MyOptionParser(OptionParser):
                         help="setup for Office365. Equivalents to "
                              "--host=outlook.office365.com --port=993 "
                              "--ssl --retry=3")
+        self.add_option("--email-only-folders", action="store_true",  
+                        help="use for servers that do not allow storing emails and subfolders in the same folder"
+                            "only works with -r")
         self.add_option("--host", 
                         help="destination hostname [default: %default]")
         self.add_option("--port", type="int", 
@@ -77,6 +80,7 @@ class MyOptionParser(OptionParser):
         self.set_defaults(host="localhost",
                           ssl=False,
                           r=False,
+                          email_only_folders=False,
                           user="",
                           password="",
                           box="INBOX", 
@@ -250,7 +254,7 @@ def upload(imap, box, src, err, time_fields):
     p.endAll()
 
 
-def recursive_upload(imap, box, src, err, time_fields):
+def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
     for file in os.listdir(src):
         path = src + os.sep + file
         if os.path.isdir(path):
@@ -259,13 +263,30 @@ def recursive_upload(imap, box, src, err, time_fields):
                 subbox = fileName
             else:
                 subbox = box + "/" + fileName
-            recursive_upload(imap, subbox, path, err, time_fields)
+            recursive_upload(imap, subbox, path, err, time_fields, email_only_folders)
         elif file.endswith("mbox"):
             print >>sys.stderr, "Found mailbox at {}...".format(path)
             mbox = mailbox.mbox(path, create=False)
+            if (email_only_folders and has_mixed_content(src)):
+                target_box = box + "/" + src.split(os.sep)[-1]
+            else:
+                target_box = box;
             if err:
                 err = mailbox.mbox(err)
-            upload(imap, box, mbox, err, time_fields)
+            upload(imap, target_box, mbox, err, time_fields)
+
+def has_mixed_content(src):
+    dirFound = False
+    mboxFound = False
+
+    for file in os.listdir(src):
+        path = src + os.sep + file
+        if (os.path.isdir(path)):
+            dirFound = True
+        elif file.endswith("mbox"):
+            mboxFound = True
+
+    return dirFound and mboxFound
 
 def pretty_print_mailboxes(boxes):
     for box in boxes:
@@ -426,6 +447,7 @@ def main(args=None):
         time_fields = options.pop("time_fields")
 
         recurse = options.pop("r")
+        email_only_folders = options.pop("email_only_folders")
 
         # Connect to the server and login
         print >>sys.stderr, \
@@ -450,7 +472,7 @@ def main(args=None):
                     err = mailbox.mbox(err)
                 upload(uploader, options["box"], src, err, time_fields)
             else:
-                recursive_upload(uploader, "", src, err, time_fields)
+                recursive_upload(uploader, "", src, err, time_fields, email_only_folders)
 
         return 0
 

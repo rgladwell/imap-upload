@@ -12,6 +12,7 @@ IMAP Upload is a tool for uploading a local mbox file to IMAP4 server. The most 
 *   Preserve the delivery time of the message. (support date time in From_ line / &ldquo;Received:&rdquo; field / &ldquo;Date:&rdquo; field)
 *   Automatic retry when the connection was aborted which happens frequently on Gmail.
 *   Can write out failed messages in mbox format. (Easy to retry for the failed messages)
+*   Supports IMAP servers that can only store either folders or emails in a folder
 *   Support SSL.
 *   Run on Windows, Mac OS X, Linux, *BSD, and so on.
 *   Command line interface. (No friendly GUI, sorry...)
@@ -58,6 +59,29 @@ You can also recursively import mbox sub-folders using th `-r` option:
 
 ```
 python imap_upload.py --gmail -r path
+```
+
+If your server only supports email or folders per folder you can use the `--email-only-folders` option together with `-r`. 
+If a mixed content folder is found, the emails of the folder are uploaded to a sub-folder of the same name:
+
+```sh
+python imap_upload.py -r path --email-only-folders
+```
+
+Example:
+```
+**Local**
+  Foo (Folder)
+   -> Bar (Folder)
+   -> Email 1
+   -> Email 2
+
+**Remote**
+  Foo
+    -> Bar (Folder)
+    -> Foo (Folder)
+      -> Email 1
+      -> Email 2
 ```
 
 You can use just output the account's mailboxes (folders/labels) list. This is useful if you need to upload to an existing special mailbox (i.e.: Gmail's Send Email label, when using a language different from English):
