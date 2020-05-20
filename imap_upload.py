@@ -290,7 +290,7 @@ def has_mixed_content(src):
 
 def pretty_print_mailboxes(boxes):
     for box in boxes:
-        x = re.search("\(((\\\\[A-Za-z]+\s*)+)\) \"(.)\" \"(.*?)\"",box)
+        x = re.search("\(((\\\\[A-Za-z]+\s*)+)\) \"(\.)\" \"?(.*)\"?",box)
         raw_name = x.group(4)
         sep = x.group(3)
         raw_flags = x.group(1)
