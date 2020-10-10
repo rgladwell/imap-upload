@@ -302,11 +302,13 @@ def has_mixed_content(src):
 
 def pretty_print_mailboxes(boxes):
     for box in boxes:
-        x = re.search("\(((\\\\[A-Za-z]+\s*)+)\) \"(\.)\" \"?(.*)\"?",box)
+        x = re.search("\(((\\\\[A-Za-z]+\s*)+)\) \"(.*)\" \"?(.*)\"?",box)
+        if not x:
+            print "Could not parse: {}".format(box)
+            continue
         raw_name = x.group(4)
         sep = x.group(3)
         raw_flags = x.group(1)
-        #print pretty_mailboxes_name(raw_name, sep) + "\t\t\t\t\t" + pretty_flags(raw_flags)
         print "{:40s}{}".format(pretty_mailboxes_name(raw_name, sep), pretty_flags(raw_flags))
 
 def pretty_mailboxes_name(name, sep):
