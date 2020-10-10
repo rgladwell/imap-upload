@@ -282,7 +282,7 @@ def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
             if (email_only_folders and has_mixed_content(src)):
                 target_box = box + "/" + src.split(os.sep)[-1]
             else:
-                target_box = box;
+                target_box = box
             if err:
                 err = mailbox.mbox(err)
             upload(imap, target_box, mbox, err, time_fields)
