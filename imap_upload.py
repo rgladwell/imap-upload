@@ -46,6 +46,11 @@ class MyOptionParser(OptionParser):
                         help="setup for Office365. Equivalents to "
                              "--host=outlook.office365.com --port=993 "
                              "--ssl --retry=3")
+        self.add_option("--fastmail", action="callback", nargs=0,
+                        callback=self.enable_fastmail,
+                        help="setup for Fastmail hosted IMAP. Equivalent to "
+                             "--host=imap.fastmail.com --port=993 "
+                             "--ssl --retry=3")
         self.add_option("--email-only-folders", action="store_true",  
                         help="use for servers that do not allow storing emails and subfolders in the same folder"
                             "only works with -r")
@@ -87,6 +92,7 @@ class MyOptionParser(OptionParser):
                           retry=0,
                           error=None, 
                           time_fields=["from", "received", "date"])
+
     def enable_gmail(self, option, opt_str, value, parser):
         parser.values.ssl = True
         parser.values.host = "imap.gmail.com"
@@ -96,6 +102,12 @@ class MyOptionParser(OptionParser):
     def enable_office365(self, option, opt_str, value, parser):
         parser.values.ssl = True
         parser.values.host = "outlook.office365.com"
+        parser.values.port = 993
+        parser.values.retry = 3
+
+    def enable_fastmail(self, option, opt_str, value, parser):
+        parser.values.ssl = True
+        parser.values.host = "imap.fastmail.com"
         parser.values.port = 993
         parser.values.retry = 3
 
