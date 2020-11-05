@@ -94,6 +94,12 @@ If you prefer a tree-like view of the mailboxes:
 python imap_upload.py --gmail --list_boxes --treeview
 ```
 
+Some email providers use alternative IMAP folder separators (for example, Hetzner uses the `.` separator character). You can change this default using the `--folder-separator` argument, as follows:
+
+```sh
+python imap_upload.py -r path --folder-separator '.' --email-only-folders
+```
+
 For more details, please refer to the --help message:
 
 ```sh

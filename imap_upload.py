@@ -82,6 +82,8 @@ class MyOptionParser(OptionParser):
                              '[default: from,received,date]')
         self.add_option("--list_boxes", action="store_true",
                         help="list all mail boxes in the IMAP server")
+        self.add_option("--folder-seperator", action="folder_separator",
+                        help="change folder separator character default")
         self.set_defaults(host="localhost",
                           ssl=False,
                           r=False,
@@ -92,6 +94,9 @@ class MyOptionParser(OptionParser):
                           retry=0,
                           error=None, 
                           time_fields=["from", "received", "date"])
+                          error=None,
+                          time_fields=["from", "received", "date"],
+                          folder_seperator="/")
 
     def enable_gmail(self, option, opt_str, value, parser):
         parser.values.ssl = True
@@ -267,6 +272,7 @@ def upload(imap, box, src, err, time_fields):
 
 
 def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
+    seperator = options.pop("folder_seperator")
     for file in os.listdir(src):
         path = src + os.sep + file
         if os.path.isdir(path):
@@ -274,13 +280,13 @@ def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
             if not box:
                 subbox = fileName
             else:
-                subbox = box + "/" + fileName
+                subbox = box + seperator + fileName
             recursive_upload(imap, subbox, path, err, time_fields, email_only_folders)
         elif file.endswith("mbox"):
             print >>sys.stderr, "Found mailbox at {}...".format(path)
             mbox = mailbox.mbox(path, create=False)
             if (email_only_folders and has_mixed_content(src)):
-                target_box = box + "/" + src.split(os.sep)[-1]
+                target_box = box + seperator + src.split(os.sep)[-1]
             else:
                 target_box = box
             if err:
