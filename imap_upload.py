@@ -270,7 +270,6 @@ def upload(imap, box, src, err, time_fields):
 
 
 def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
-    separator = options.pop("folder_separator")
     for file in os.listdir(src):
         path = src + os.sep + file
         if os.path.isdir(path):
@@ -466,6 +465,7 @@ def main(args=None):
 
         recurse = options.pop("r")
         email_only_folders = options.pop("email_only_folders")
+        separator = options.pop("folder_separator")
 
         # Connect to the server and login
         print >>sys.stderr, \
