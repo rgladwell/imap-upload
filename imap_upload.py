@@ -269,7 +269,7 @@ def upload(imap, box, src, err, time_fields):
     p.endAll()
 
 
-def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
+def recursive_upload(imap, box, src, err, time_fields, email_only_folders, separator):
     for file in os.listdir(src):
         path = src + os.sep + file
         if os.path.isdir(path):
@@ -278,7 +278,7 @@ def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
                 subbox = fileName
             else:
                 subbox = box + separator + fileName
-            recursive_upload(imap, subbox, path, err, time_fields, email_only_folders)
+            recursive_upload(imap, subbox, path, err, time_fields, email_only_folders, separator)
         elif file.endswith("mbox"):
             print >>sys.stderr, "Found mailbox at {}...".format(path)
             mbox = mailbox.mbox(path, create=False)
@@ -490,7 +490,7 @@ def main(args=None):
                     err = mailbox.mbox(err)
                 upload(uploader, options["box"], src, err, time_fields)
             else:
-                recursive_upload(uploader, "", src, err, time_fields, email_only_folders)
+                recursive_upload(uploader, "", src, err, time_fields, email_only_folders, separator)
 
         return 0
 
