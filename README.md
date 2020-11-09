@@ -61,7 +61,7 @@ You can also recursively import mbox sub-folders using th `-r` option:
 python imap_upload.py --gmail -r path
 ```
 
-If your server only supports email or folders per folder you can use the `--email-only-folders` option together with `-r`. 
+If your server only supports email or folders per folder you can use the `--email-only-folders` option together with `-r`.
 If a mixed content folder is found, the emails of the folder are uploaded to a sub-folder of the same name:
 
 ```sh
