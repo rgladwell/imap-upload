@@ -94,7 +94,7 @@ class MyOptionParser(OptionParser):
                           retry=0,
                           error=None,
                           time_fields=["from", "received", "date"],
-                          folder_seperator="/")
+                          folder_separator="/")
 
     def enable_gmail(self, option, opt_str, value, parser):
         parser.values.ssl = True
@@ -270,7 +270,7 @@ def upload(imap, box, src, err, time_fields):
 
 
 def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
-    seperator = options.pop("folder_seperator")
+    separator = options.pop("folder_separator")
     for file in os.listdir(src):
         path = src + os.sep + file
         if os.path.isdir(path):
@@ -278,13 +278,13 @@ def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
             if not box:
                 subbox = fileName
             else:
-                subbox = box + seperator + fileName
+                subbox = box + separator + fileName
             recursive_upload(imap, subbox, path, err, time_fields, email_only_folders)
         elif file.endswith("mbox"):
             print >>sys.stderr, "Found mailbox at {}...".format(path)
             mbox = mailbox.mbox(path, create=False)
             if (email_only_folders and has_mixed_content(src)):
-                target_box = box + seperator + src.split(os.sep)[-1]
+                target_box = box + separator + src.split(os.sep)[-1]
             else:
                 target_box = box
             if err:
