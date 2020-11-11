@@ -36,13 +36,13 @@ class MyOptionParser(OptionParser):
                               version="IMAP Upload " + __version__)
         self.add_option("-r", action="store_true",
                         help="recursively search sub-folders")
-        self.add_option("--gmail", action="callback", nargs=0, 
-                        callback=self.enable_gmail, 
+        self.add_option("--gmail", action="callback", nargs=0,
+                        callback=self.enable_gmail,
                         help="setup for Gmail. Equivalents to "
                              "--host=imap.gmail.com --port=993 "
                              "--ssl --retry=3")
-        self.add_option("--office365", action="callback", nargs=0, 
-                        callback=self.enable_office365, 
+        self.add_option("--office365", action="callback", nargs=0,
+                        callback=self.enable_office365,
                         help="setup for Office365. Equivalents to "
                              "--host=outlook.office365.com --port=993 "
                              "--ssl --retry=3")
@@ -51,23 +51,23 @@ class MyOptionParser(OptionParser):
                         help="setup for Fastmail hosted IMAP. Equivalent to "
                              "--host=imap.fastmail.com --port=993 "
                              "--ssl --retry=3")
-        self.add_option("--email-only-folders", action="store_true",  
+        self.add_option("--email-only-folders", action="store_true",
                         help="use for servers that do not allow storing emails and subfolders in the same folder"
                             "only works with -r")
-        self.add_option("--host", 
+        self.add_option("--host",
                         help="destination hostname [default: %default]")
-        self.add_option("--port", type="int", 
+        self.add_option("--port", type="int",
                         help="destination port number [default: 143, 993 for SSL]")
-        self.add_option("--ssl", action="store_true", 
+        self.add_option("--ssl", action="store_true",
                         help="use SSL connection")
-        self.add_option("--box", 
+        self.add_option("--box",
                         help="destination mail box name [default: %default]")
         self.add_option("--user", help="login name [default: empty]")
         self.add_option("--password", help="login password")
-        self.add_option("--retry", type="int", metavar="COUNT", 
+        self.add_option("--retry", type="int", metavar="COUNT",
                         help="retry COUNT times on connection abort. "
                              "0 disables [default: %default]")
-        self.add_option("--error", metavar="ERR_MBOX", 
+        self.add_option("--error", metavar="ERR_MBOX",
                         help="append failured messages to the file ERR_MBOX")
         self.add_option("--time-fields", metavar="LIST", type="string", nargs=1,
                         action="callback", callback=self.set_time_fields,
@@ -82,16 +82,19 @@ class MyOptionParser(OptionParser):
                              '[default: from,received,date]')
         self.add_option("--list_boxes", action="store_true",
                         help="list all mail boxes in the IMAP server")
+        self.add_option("--folder-separator", type="string",
+                        help="change folder separator-character default")
         self.set_defaults(host="localhost",
                           ssl=False,
                           r=False,
                           email_only_folders=False,
                           user="",
                           password="",
-                          box="INBOX", 
+                          box="INBOX",
                           retry=0,
-                          error=None, 
-                          time_fields=["from", "received", "date"])
+                          error=None,
+                          time_fields=["from", "received", "date"],
+                          folder_separator="/")
 
     def enable_gmail(self, option, opt_str, value, parser):
         parser.values.ssl = True
@@ -161,7 +164,7 @@ class MyOptionParser(OptionParser):
         raise optparse.OptParseError(self.get_usage() + "\n" + msg)
 
 
-def si_prefix(n, prefixes=("", "k", "M", "G", "T", "P", "E", "Z", "Y"), 
+def si_prefix(n, prefixes=("", "k", "M", "G", "T", "P", "E", "Z", "Y"),
               block=1024, threshold=1):
     """Get SI prefix and reduced number."""
     if (n < block * threshold or len(prefixes) == 1):
@@ -251,7 +254,7 @@ def upload(imap, box, src, err, time_fields):
     for i, msg in src.iteritems():
         try:
             p.begin(msg)
-            r, r2 = imap.upload(box, msg.get_delivery_time(time_fields), 
+            r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
                                 msg.as_string(), 3)
             if r != "OK":
                 raise Exception(r2[0]) # FIXME: Should use custom class
@@ -266,7 +269,7 @@ def upload(imap, box, src, err, time_fields):
     p.endAll()
 
 
-def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
+def recursive_upload(imap, box, src, err, time_fields, email_only_folders, separator):
     for file in os.listdir(src):
         path = src + os.sep + file
         if os.path.isdir(path):
@@ -274,13 +277,13 @@ def recursive_upload(imap, box, src, err, time_fields, email_only_folders):
             if not box:
                 subbox = fileName
             else:
-                subbox = box + "/" + fileName
-            recursive_upload(imap, subbox, path, err, time_fields, email_only_folders)
+                subbox = box + separator + fileName
+            recursive_upload(imap, subbox, path, err, time_fields, email_only_folders, separator)
         elif file.endswith("mbox"):
             print >>sys.stderr, "Found mailbox at {}...".format(path)
             mbox = mailbox.mbox(path, create=False)
             if (email_only_folders and has_mixed_content(src)):
-                target_box = box + "/" + src.split(os.sep)[-1]
+                target_box = box + separator + src.split(os.sep)[-1]
             else:
                 target_box = box
             if err:
@@ -334,14 +337,14 @@ def get_delivery_time(self, fields):
       * "from"      From_ line of mbox format.
       * "received"  The first "Received:" field in RFC 2822.
       * "date"      "Date:" field in RFC 2822.
-    Return the current time if the fields is empty or no field 
+    Return the current time if the fields is empty or no field
     had valid value.
     """
     def get_from_time(self):
         """Extract the time from From_ line."""
         time_str = self.get_from().split(" ", 1)[1]
         t = time_str.replace(",", " ").lower()
-        t = re.sub(" (sun|mon|tue|wed|thu|fri|sat) ", " ", 
+        t = re.sub(" (sun|mon|tue|wed|thu|fri|sat) ", " ",
                    " " + t + " ")
         if t.find(":") == -1:
             t += " 00:00:00"
@@ -361,9 +364,9 @@ def get_delivery_time(self, fields):
             t = vars()["get_" + field + "_time"](self)
             t = email.utils.parsedate_tz(t)
             t = email.utils.mktime_tz(t)
-            # Do not allow the time before 1970-01-01 because 
-            # some IMAP server (i.e. Gmail) ignore it, and 
-            # some MUA (Outlook Express?) set From_ date to 
+            # Do not allow the time before 1970-01-01 because
+            # some IMAP server (i.e. Gmail) ignore it, and
+            # some MUA (Outlook Express?) set From_ date to
             # 1965-01-01 for all messages.
             if t < 0:
                 continue
@@ -374,8 +377,8 @@ def get_delivery_time(self, fields):
     return time.time()
 
 # Directly attach get_delivery_time() to the mailbox.mboxMessage
-# as a method. 
-# I want to use the factory parameter of mailbox.mbox() 
+# as a method.
+# I want to use the factory parameter of mailbox.mbox()
 # but it seems not to work in Python 2.5.4.
 mailbox.mboxMessage.get_delivery_time = get_delivery_time
 
@@ -437,7 +440,7 @@ class IMAPUploader:
 def main(args=None):
     try:
         # Setup locale
-        # Set LC_TIME to "C" so that imaplib.Time2Internaldate() 
+        # Set LC_TIME to "C" so that imaplib.Time2Internaldate()
         # uses English month name.
         locale.setlocale(locale.LC_ALL, "")
         locale.setlocale(locale.LC_TIME, "C")
@@ -462,6 +465,7 @@ def main(args=None):
 
         recurse = options.pop("r")
         email_only_folders = options.pop("email_only_folders")
+        separator = options.pop("folder_separator")
 
         # Connect to the server and login
         print >>sys.stderr, \
@@ -486,7 +490,7 @@ def main(args=None):
                     err = mailbox.mbox(err)
                 upload(uploader, options["box"], src, err, time_fields)
             else:
-                recursive_upload(uploader, "", src, err, time_fields, email_only_folders)
+                recursive_upload(uploader, "", src, err, time_fields, email_only_folders, separator)
 
         return 0
 

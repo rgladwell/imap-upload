@@ -61,7 +61,7 @@ You can also recursively import mbox sub-folders using th `-r` option:
 python imap_upload.py --gmail -r path
 ```
 
-If your server only supports email or folders per folder you can use the `--email-only-folders` option together with `-r`. 
+If your server only supports email or folders per folder you can use the `--email-only-folders` option together with `-r`.
 If a mixed content folder is found, the emails of the folder are uploaded to a sub-folder of the same name:
 
 ```sh
@@ -92,6 +92,12 @@ python imap_upload.py --gmail --list_boxes
 If you prefer a tree-like view of the mailboxes:
 ```sh
 python imap_upload.py --gmail --list_boxes --treeview
+```
+
+Some email providers use alternative IMAP folder separators (for example, Hetzner uses the `.` separator character). You can change this default using the `--folder-separator` argument, as follows:
+
+```sh
+python imap_upload.py -r path --folder-separator '.' --email-only-folders
 ```
 
 For more details, please refer to the --help message:
