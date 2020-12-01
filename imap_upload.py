@@ -247,7 +247,7 @@ class Progress():
 
 
 def upload(imap, box, src, err, time_fields):
-    print >>sys.stderr, "Uploading to {}...".format(box)
+    print >>sys.stderr, u"Uploading to {}...".format(box)
     print >>sys.stderr, \
           "Counting the mailbox (it could take a while for the large one)."
     p = Progress(len(src))
