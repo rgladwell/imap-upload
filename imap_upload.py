@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # coding=utf-8
 import codecs
 import email
@@ -14,15 +14,15 @@ import socket
 import sys
 import time
 import unicodedata
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import os
 from optparse import OptionParser
-from urlparse import urlparse
+from urllib.parse import urlparse
 
-__version__ = "1.3"
+__version__ = "2.0.0"
 
-if sys.version_info < (2, 5):
-    print >>sys.stderr, "IMAP Upload requires Python 2.5 or later."
+if sys.version_info < (3, 8):
+    print("IMAP Upload requires Python 3.5 or later.")
     sys.exit(1)
 
 class MyOptionParser(OptionParser):
@@ -131,7 +131,7 @@ class MyOptionParser(OptionParser):
             self.error("Extra argument")
         if len(args) > 1:
             dest = self.parse_dest(args[1])
-            for (k, v) in dest.__dict__.iteritems():
+            for (k, v) in dest.__dict__.items():
                 setattr(options, k, v)
         if options.port is None:
             options.port = [143, 993][options.ssl]
@@ -151,9 +151,9 @@ class MyOptionParser(OptionParser):
             if dest.port:
                 options.port = dest.port
             if dest.username:
-                options.user = urllib.unquote(dest.username)
+                options.user = urllib.parse.unquote(dest.username)
             if dest.password:
-                options.password = urllib.unquote(dest.password)
+                options.password = urllib.parse.unquote(dest.password)
             if len(dest.path):
                 options.box = dest.path[1:] # trim the first `/'
             return options
@@ -175,7 +175,7 @@ def si_prefix(n, prefixes=("", "k", "M", "G", "T", "P", "E", "Z", "Y"),
 def str_width(s):
     """Get string width."""
     w = 0
-    for c in unicode(s):
+    for c in str(s):
         w += 1 + (unicodedata.east_asian_width(c) in "FWA")
     return w
 
@@ -183,7 +183,7 @@ def str_width(s):
 def trim_width(s, width):
     """Get truncated string with specified width."""
     trimed = []
-    for c in unicode(s):
+    for c in str(s):
         width -= str_width(c)
         if width <= 0:
             break
@@ -216,8 +216,8 @@ class Progress():
         self.time_began = time.time()
         size, prefix = si_prefix(float(len(msg.as_string())), threshold=0.8)
         sbj = self.decode_subject(msg["subject"] or "")
-        print >>sys.stderr, self.format % \
-              (self.count + 1, size, prefix + "B", left_fit_width(sbj, 30)),
+        print(self.format % \
+              (self.count + 1, size, prefix + "B", left_fit_width(sbj, 30)), end=' ')
 
     def decode_subject(self, sbj):
         decoded = []
@@ -225,7 +225,7 @@ class Progress():
             parts = email.header.decode_header(sbj)
             for s, codec in parts:
                 decoded.append(s.decode(codec or "ascii"))
-        except Exception, e:
+        except Exception as e:
             pass
         return "".join(decoded)
 
@@ -233,25 +233,24 @@ class Progress():
         """Called when a message was processed successfully."""
         self.count += 1
         self.ok_count += 1
-        print >>sys.stderr, "OK (%d sec)" % \
-              math.ceil(time.time() - self.time_began)
+        print("OK (%d sec)" % \
+              math.ceil(time.time() - self.time_began))
 
     def endNg(self, err):
         """Called when an error has occurred while processing a message."""
-        print >>sys.stderr, "NG (%s)" % err
+        print("NG (%s)" % err)
 
     def endAll(self):
         """Called when all message was processed."""
-        print >>sys.stderr, "Done. (OK: %d, NG: %d)" % \
-              (self.ok_count, self.total_count - self.ok_count)
+        print("Done. (OK: %d, NG: %d)" % \
+              (self.ok_count, self.total_count - self.ok_count))
 
 
 def upload(imap, box, src, err, time_fields):
-    print >>sys.stderr, u"Uploading to {}...".format(box)
-    print >>sys.stderr, \
-          "Counting the mailbox (it could take a while for the large one)."
+    print("Uploading to {}...".format(box))
+    print("Counting the mailbox (it could take a while for the large one).")
     p = Progress(len(src))
-    for i, msg in src.iteritems():
+    for i, msg in src.items():
         try:
             p.begin(msg)
             r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
@@ -260,9 +259,9 @@ def upload(imap, box, src, err, time_fields):
                 raise Exception(r2[0]) # FIXME: Should use custom class
             p.endOk()
             continue
-        except socket.error, e:
+        except socket.error as e:
             p.endNg("Socket error: " + str(e))
-        except Exception, e:
+        except Exception as e:
             p.endNg(e)
         if err is not None:
             err.add(msg)
@@ -270,7 +269,7 @@ def upload(imap, box, src, err, time_fields):
 
 
 def recursive_upload(imap, box, src, err, time_fields, email_only_folders, separator):
-    usrc = unicode(src)
+    usrc = str(src)
     for file in os.listdir(usrc):
         path = usrc + os.sep + file
         if os.path.isdir(path):
@@ -281,7 +280,7 @@ def recursive_upload(imap, box, src, err, time_fields, email_only_folders, separ
                 subbox = box + separator + fileName
             recursive_upload(imap, subbox, path, err, time_fields, email_only_folders, separator)
         elif file.endswith("mbox"):
-            print >>sys.stderr, u"Found mailbox at {}...".format(path)
+            print("Found mailbox at {}...".format(path))
             mbox = mailbox.mbox(path, create=False)
             if (email_only_folders and has_mixed_content(src)):
                 target_box = box + separator + src.split(os.sep)[-1]
@@ -308,12 +307,12 @@ def pretty_print_mailboxes(boxes):
     for box in boxes:
         x = re.search("\(((\\\\[A-Za-z]+\s*)+)\) \"(.*)\" \"?(.*)\"?",box)
         if not x:
-            print "Could not parse: {}".format(box)
+            print("Could not parse: {}".format(box))
             continue
         raw_name = x.group(4)
         sep = x.group(3)
         raw_flags = x.group(1)
-        print "{:40s}{}".format(pretty_mailboxes_name(raw_name, sep), pretty_flags(raw_flags))
+        print("{:40s}{}".format(pretty_mailboxes_name(raw_name, sep), pretty_flags(raw_flags)))
 
 def pretty_mailboxes_name(name, sep):
     depth = name.count(sep)
@@ -406,7 +405,7 @@ class IMAPUploader:
             self.close()
             if retry == 0:
                 raise
-        print >>sys.stderr, "(Reconnect)",
+        print("(Reconnect)", end=' ')
         time.sleep(5)
         return self.upload(box, delivery_time, message, retry - 1)
 
@@ -420,8 +419,8 @@ class IMAPUploader:
 
         try:
             self.imap.create(self.box)
-        except Exception, e:
-            print >>sys.stderr, "(create error: )" + str(e)
+        except Exception as e:
+            print("(create error: )" + str(e))
 
     def close(self):
         if not self.imap:
@@ -455,7 +454,7 @@ def main(args=None):
         parser = MyOptionParser()
         options = parser.parse_args(args)
         if len(str(options.user)) == 0:
-            print "User name: ",
+            print("User name: ", end=' ')
             options.user = sys.stdin.readline().rstrip("\n")
         if len(str(options.password)) == 0:
             options.password = getpass.getpass()
@@ -469,8 +468,7 @@ def main(args=None):
         separator = options.pop("folder_separator")
 
         # Connect to the server and login
-        print >>sys.stderr, \
-              "Connecting to %s:%s." % (options["host"], options["port"])
+        print("Connecting to %s:%s." % (options["host"], options["port"]))
 
         if (list_boxes):
             print("Just list mail boxes!")
@@ -495,26 +493,27 @@ def main(args=None):
 
         return 0
 
-    except optparse.OptParseError, e:
-        print >>sys.stderr, e
+    except optparse.OptParseError as e:
+        print(e)
         return 2
-    except mailbox.NoSuchMailboxError, e:
-        print >>sys.stderr, "No such mailbox:", e
+    except mailbox.NoSuchMailboxError as e:
+        print("No such mailbox:", e)
         return 1
-    except socket.timeout, e:
-        print >>sys.stderr, "Timed out"
+    except socket.timeout as e:
+        print("Timed out")
         return 1
-    except imaplib.IMAP4.error, e:
-        print >>sys.stderr, "IMAP4 error:", e
+    except imaplib.IMAP4.error as e:
+        print("IMAP4 error:", e)
         return 1
-    except KeyboardInterrupt, e:
-        print >>sys.stderr, "Interrupted"
+    except KeyboardInterrupt as e:
+        print("Interrupted")
         return 130
-    except Exception, e:
+    except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
-        print >>sys.stderr, "An unknown error has occurred [{}]: ".format(exc_tb.tb_lineno), e
+        print("An unknown error has occurred [{}]: ".format(exc_tb.tb_lineno), e)
         return 1
 
 
 if __name__ == "__main__":
+    print("IMAP Upload (v{})".format(__version__))
     sys.exit(main())
