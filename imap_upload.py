@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 
 __version__ = "2.0.0"
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 5):
     print("IMAP Upload requires Python 3.5 or later.")
     sys.exit(1)
 
@@ -454,7 +454,7 @@ def main(args=None):
         parser = MyOptionParser()
         options = parser.parse_args(args)
         if len(str(options.user)) == 0:
-            print("User name: ", end=' ')
+            print("User name: ", end=' ', flush=True)
             options.user = sys.stdin.readline().rstrip("\n")
         if len(str(options.password)) == 0:
             options.password = getpass.getpass()
