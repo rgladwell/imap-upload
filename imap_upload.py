@@ -201,6 +201,16 @@ def left_fit_width(s, width, fill=' '):
     return s
 
 
+def decode_header_to_string(header):
+    """Decodes an email message header (possibly RFC2047-encoded)
+    into a string, while working around https://bugs.python.org/issue22833"""
+
+    return "".join(
+        alleged_string if isinstance(alleged_string, str) else alleged_string.decode(
+            alleged_charset or 'ascii')
+        for alleged_string, alleged_charset in email.header.decode_header(header))
+
+
 class Progress():
     """Store and output progress information."""
 
@@ -215,19 +225,9 @@ class Progress():
         """Called when start proccessing of a new message."""
         self.time_began = time.time()
         size, prefix = si_prefix(float(len(msg.as_string())), threshold=0.8)
-        sbj = self.decode_subject(msg["subject"] or "")
+        sbj = decode_header_to_string(msg["subject"] or "")
         print(self.format % \
               (self.count + 1, size, prefix + "B", left_fit_width(sbj, 30)), end=' ')
-
-    def decode_subject(self, sbj):
-        decoded = []
-        try:
-            parts = email.header.decode_header(sbj)
-            for s, codec in parts:
-                decoded.append(s.decode(codec or "ascii"))
-        except Exception as e:
-            pass
-        return "".join(decoded)
 
     def endOk(self):
         """Called when a message was processed successfully."""
