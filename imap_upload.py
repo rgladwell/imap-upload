@@ -400,6 +400,8 @@ class IMAPUploader:
         try:
             self.open()
             self.imap.create(box)
+            if type(message) == str:
+                message = bytes(message, 'utf-8')
             return self.imap.append(box, [], delivery_time, message)
         except (imaplib.IMAP4.abort, socket.error):
             self.close()
