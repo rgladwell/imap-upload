@@ -105,3 +105,7 @@ For more details, please refer to the --help message:
 ```sh
 python imap_upload.py --help
 ```
+
+## Hacking
+
+Before reporting a bug please check the [list of known issues](https://github.com/rgladwell/imap-upload/issues?q=label%3A%22known+issues%22+).
