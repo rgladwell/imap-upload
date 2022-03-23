@@ -21,7 +21,7 @@ IMAP Upload is a tool for uploading a local mbox file to IMAP4 server. The most 
 
 ### Requirements
 
-*   Python 2.5 or later.
+*   Python 3.5 or later.
 
 ### Quick Start
 
