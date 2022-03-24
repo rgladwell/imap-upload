@@ -16,6 +16,7 @@ import time
 import unicodedata
 import urllib.request, urllib.parse, urllib.error
 import os
+import traceback
 from optparse import OptionParser
 from urllib.parse import urlparse
 from imapclient import imap_utf7
@@ -93,6 +94,8 @@ class MyOptionParser(OptionParser):
                         help="Only import first label from the email.")
         self.add_option("--google-takeout-rename-label-ampersand", action="store_true",
                         help="Rename ampersand in labels")
+        self.add_option("--debug", action="store_true",
+                        help="Debug: Make some error messages more verbose.")
         self.set_defaults(host="localhost",
                           ssl=False,
                           r=False,
@@ -107,7 +110,8 @@ class MyOptionParser(OptionParser):
                           google_takeout=False,
                           google_takeout_box_as_base_folder=False,
                           google_takeout_first_label=False,
-                          google_takeout_rename_label_ampersand=False
+                          google_takeout_rename_label_ampersand=False,
+                          debug=False
                           )
 
     def enable_gmail(self, option, opt_str, value, parser):
@@ -306,7 +310,7 @@ class Progress():
               (self.ok_count, self.total_count - self.ok_count))
 
 
-def upload(imap, box, src, err, time_fields, google_takeout = False):
+def upload(imap, box, src, err, time_fields, google_takeout = False, debug = False):
     print("Uploading to {}...".format(box))
     print("Counting the mailbox (it could take a while for the large one).")
     p = Progress(len(src), google_takeout=google_takeout)
@@ -326,7 +330,10 @@ def upload(imap, box, src, err, time_fields, google_takeout = False):
         except socket.error as e:
             p.endNg("Socket error: " + str(e))
         except Exception as e:
-            p.endNg(e)
+            if debug:
+                p.endNg(traceback.format_exc())
+            else:
+                p.endNg(e)
         if err is not None:
             err.add(msg)
     p.endAll()
@@ -562,6 +569,7 @@ def main(args=None):
         google_takeout_box_as_base_folder = options.pop("google_takeout_box_as_base_folder")
         google_takeout_first_label = options.pop("google_takeout_first_label")
         google_takeout_rename_label_ampersand = options.pop("google_takeout_rename_label_ampersand")
+        debug = options.pop("debug")
 
 
         # Connect to the server and login
@@ -584,7 +592,7 @@ def main(args=None):
                 src = mailbox.mbox(src, create=False)
                 if err:
                     err = mailbox.mbox(err)
-                upload(uploader, options["box"], src, err, time_fields, google_takeout)
+                upload(uploader, options["box"], src, err, time_fields, google_takeout, debug)
             else:
                 recursive_upload(uploader, "", src, err, time_fields, email_only_folders, separator)
 
