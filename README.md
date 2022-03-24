@@ -22,6 +22,7 @@ IMAP Upload is a tool for uploading a local mbox file to IMAP4 server. The most 
 ### Requirements
 
 *   Python 3.5 or later.
+*   imapclient ( `pip3 install imapclient` )
 
 ### Quick Start
 
@@ -100,6 +101,11 @@ Some email providers use alternative IMAP folder separators (for example, Hetzne
 python imap_upload.py -r path --folder-separator '.' --email-only-folders
 ```
 
+Google Takeout example:
+```sh
+python imap_upload.py --ssl --user=login@example.net --password=MyS3cr3t --host=mail.example.net --port=993 --error='All mail Including Spam and Trash_errors.mbox' --google-takeout 'All mail Including Spam and Trash.mbox'
+```
+
 For more details, please refer to the --help message:
 
 ```sh
@@ -146,4 +152,13 @@ Options:
   --list_boxes          list all mail boxes in the IMAP server
   --folder-separator=FOLDER_SEPARATOR
                         change folder separator-character default
+  --google-takeout      Import Google Takeout using labels as folders.
+  --google-takeout-box-as-base-folder
+                        Use given box as base folder.
+  --google-takeout-first-label
+                        Only import first label from the email.
+  --google-takeout-language=GOOGLE_TAKEOUT_LANGUAGE
+                        [Use specific language. Supported languages: 'en es
+                        ca'. default: en]
+  --debug               Debug: Make some error messages more verbose.
 ```
