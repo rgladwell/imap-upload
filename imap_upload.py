@@ -252,12 +252,8 @@ class Progress():
             gmail_important_str = u'Importante'
             gmail_unseen_str = u"No leídos"
             label = decode_header_to_string(msg["x-gmail-labels"] or "")
-            # label = re.sub(r"&", "et", label)
             label = re.sub(gmail_inbox_str, "INBOX", label)
             label = re.sub(gmail_sent_str, "Sent", label)
-            label = re.sub(r" ", "_", label)
-            label = re.sub(r"__+", "_", label)
-            label = re.sub(r"\"", "", label)
             labels = label.split(",")
             if labels.count(u'INBOX') > 0:
                 labels.remove(u'INBOX')
