@@ -294,15 +294,16 @@ class Progress():
             msg.boxes = []
             if len(labels) != 0:
                 if labels.count(gmail_draft_str):
-                    msg.boxes = ['Drafts']
+                    msg.boxes.append(['Drafts'])
                 else:
                     if labels.count('Spam'):
-                        msg.boxes = ['Junk']
+                        msg.boxes.append(['Junk'])
                     else:
-                        box = re.sub(r"\?", "", labels.pop(0))
-                        msg.boxes = box.split("/")
+                        for i in range(len(labels)):
+                            box = re.sub(r"\?", "", labels[i])
+                            msg.boxes.append(box.split("/"))
             if len(msg.boxes) == 0:
-                msg.boxes = ["INBOX"]
+                msg.boxes.append(["INBOX"])
 
         print(self.format % \
               (self.count + 1, size, prefix + "B", left_fit_width(sbj, 30)), end=' ')
@@ -332,13 +333,17 @@ def upload(imap, box, src, err, time_fields, google_takeout = False, debug = Fal
         try:
             p.begin(msg)
             if google_takeout:
-                r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
-                                    msg.as_string(), msg.flags, msg.boxes, 3)
+                for i in range(len(msg.boxes)):
+                    r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
+                                        msg.as_string(), msg.flags, msg.boxes[i], 3)
+                    if r != "OK":
+                        raise Exception(r2[0]) # FIXME: Should use custom class
             else:
                 r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
                                     msg.as_string(), None, None, 3)
-            if r != "OK":
-                raise Exception(r2[0]) # FIXME: Should use custom class
+                if r != "OK":
+                    raise Exception(r2[0]) # FIXME: Should use custom class
+
             p.endOk()
             continue
         except socket.error as e:
@@ -493,10 +498,12 @@ class IMAPUploader:
                 try:
                     self.create_folders(boxes)
                     google_takeout_box = "/".join(boxes)
-                    res = self.imap.append(imap_utf7.encode(google_takeout_box), flags, delivery_time, message)
+                    google_takeout_box_imap_command = '"' + google_takeout_box + '"'
+                    res = self.imap.append(imap_utf7.encode(google_takeout_box_imap_command), flags, delivery_time, message)
                 except:
                     google_takeout_box = "/".join(boxes)
-                    res = self.imap.append(imap_utf7.encode(google_takeout_box), flags, delivery_time, message)
+                    google_takeout_box_imap_command = '"' + google_takeout_box + '"'
+                    res = self.imap.append(imap_utf7.encode(google_takeout_box_imap_command), flags, delivery_time, message)
                 return res
             else: # Default behaviour
                 self.imap.create(box)
@@ -515,10 +522,11 @@ class IMAPUploader:
         i = 1
         while i <= len(boxes):
             google_takeout_box = "/".join(boxes[0:i])
+            google_takeout_box_imap_command = '"' + google_takeout_box + '"'
             if google_takeout_box != "INBOX":
                 try:
                     # self.imap.enable("UTF8=ACCEPT")
-                    self.imap.create(imap_utf7.encode(google_takeout_box))
+                    self.imap.create(imap_utf7.encode(google_takeout_box_imap_command))
                 except:
                     print ("Cannot create box %s" % google_takeout_box)
             i += 1
