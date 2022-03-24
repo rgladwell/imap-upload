@@ -485,6 +485,7 @@ class IMAPUploader:
             self.open()
             if boxes is not None: # Google Takeout
                 if type(message) == str:
+                    message = message.encode('utf-8', 'surrogateescape').decode('utf-8')
                     message = bytes(message, 'utf-8')
                 try:
                     self.create_folders(boxes)
