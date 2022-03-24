@@ -250,6 +250,7 @@ class Progress():
             gmail_sent_str = r"Enviados"
             gmail_draft_str = "Borradores"
             gmail_important_str = u'Importante'
+            gmail_open_str = u'Abierto'
             gmail_unseen_str = u"No leídos"
             gmail_category_str = u"Categor.a:"
             label = decode_header_to_string(msg["x-gmail-labels"] or "")
@@ -269,6 +270,8 @@ class Progress():
                 sanitized_labels.append(re.sub(r":", "_", labels[i]))
             labels = sanitized_labels
 
+            if labels.count(gmail_open_str) > 0:
+                labels.remove(gmail_open_str)
 
             if labels.count(u'INBOX') > 0:
                 labels.remove(u'INBOX')
