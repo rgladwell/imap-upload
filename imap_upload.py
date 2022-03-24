@@ -18,6 +18,7 @@ import urllib.request, urllib.parse, urllib.error
 import os
 from optparse import OptionParser
 from urllib.parse import urlparse
+from imapclient import imap_utf7
 
 __version__ = "2.0.0"
 
@@ -84,6 +85,14 @@ class MyOptionParser(OptionParser):
                         help="list all mail boxes in the IMAP server")
         self.add_option("--folder-separator", type="string",
                         help="change folder separator-character default")
+        self.add_option("--google-takeout", action="store_true",
+                        help="Import Google Takeout using labels as folders.")
+        self.add_option("--google-takeout-box-as-base-folder", action="store_true",
+                        help="Use given box as base folder.")
+        self.add_option("--google-takeout-first-label", action="store_true",
+                        help="Only import first label from the email.")
+        self.add_option("--google-takeout-rename-label-ampersand", action="store_true",
+                        help="Rename ampersand in labels")
         self.set_defaults(host="localhost",
                           ssl=False,
                           r=False,
@@ -94,7 +103,12 @@ class MyOptionParser(OptionParser):
                           retry=0,
                           error=None,
                           time_fields=["from", "received", "date"],
-                          folder_separator="/")
+                          folder_separator="/",
+                          google_takeout=False,
+                          google_takeout_box_as_base_folder=False,
+                          google_takeout_first_label=False,
+                          google_takeout_rename_label_ampersand=False
+                          )
 
     def enable_gmail(self, option, opt_str, value, parser):
         parser.values.ssl = True
@@ -214,18 +228,64 @@ def decode_header_to_string(header):
 class Progress():
     """Store and output progress information."""
 
-    def __init__(self, total_count):
+    def __init__(self, total_count, google_takeout = False):
         self.total_count = total_count
         self.ok_count = 0
         self.count = 0
         self.format = "%" + str(len(str(total_count))) + "d/" + \
                       str(total_count) + " %5.1f %-2s  %s  "
+        self.google_takeout = google_takeout
 
     def begin(self, msg):
         """Called when start proccessing of a new message."""
         self.time_began = time.time()
         size, prefix = si_prefix(float(len(msg.as_string())), threshold=0.8)
         sbj = decode_header_to_string(msg["subject"] or "")
+        if self.google_takeout:
+            gmail_inbox_str = r"Recibidos"
+            gmail_sent_str = r"Enviados"
+            gmail_draft_str = "Borradores"
+            gmail_important_str = u'Importante'
+            gmail_unseen_str = u"No leídos"
+            label = decode_header_to_string(msg["x-gmail-labels"] or "")
+            # label = re.sub(r"&", "et", label)
+            label = re.sub(gmail_inbox_str, "INBOX", label)
+            label = re.sub(gmail_sent_str, "Sent", label)
+            label = re.sub(r" ", "_", label)
+            label = re.sub(r"__+", "_", label)
+            label = re.sub(r"\"", "", label)
+            labels = label.split(",")
+            if labels.count(u'INBOX') > 0:
+                labels.remove(u'INBOX')
+
+            flags = []
+            if labels.count(gmail_unseen_str) > 0:
+                labels.remove(gmail_unseen_str)
+            else:
+                flags.append('\Seen')
+
+            if labels.count(gmail_important_str) > 0:
+                flags.append('\Flagged')
+                labels.remove(gmail_important_str)
+
+            if len(labels):
+                msg.flags = " ".join(flags)
+            else:
+                msg.flags = []
+
+            msg.boxes = []
+            if len(labels) != 0:
+                if labels.count(gmail_draft_str):
+                    msg.boxes = ['Drafts']
+                else:
+                    if labels.count('Spam'):
+                        msg.boxes = ['Junk']
+                    else:
+                        box = re.sub(r"\?", "", labels.pop(0))
+                        msg.boxes = box.split("/")
+            if len(msg.boxes) == 0:
+                msg.boxes = ["INBOX"]
+
         print(self.format % \
               (self.count + 1, size, prefix + "B", left_fit_width(sbj, 30)), end=' ')
 
@@ -246,15 +306,19 @@ class Progress():
               (self.ok_count, self.total_count - self.ok_count))
 
 
-def upload(imap, box, src, err, time_fields):
+def upload(imap, box, src, err, time_fields, google_takeout = False):
     print("Uploading to {}...".format(box))
     print("Counting the mailbox (it could take a while for the large one).")
-    p = Progress(len(src))
+    p = Progress(len(src), google_takeout=google_takeout)
     for i, msg in src.items():
         try:
             p.begin(msg)
-            r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
-                                msg.as_string(), 3)
+            if google_takeout:
+                r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
+                                    msg.as_string(), msg.flags, msg.boxes, 3)
+            else:
+                r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
+                                    msg.as_string(), None, None, 3)
             if r != "OK":
                 raise Exception(r2[0]) # FIXME: Should use custom class
             p.endOk()
@@ -394,22 +458,48 @@ class IMAPUploader:
         self.retry = retry
         self.box = box
 
-    def upload(self, box, delivery_time, message, retry = None):
+    def upload(self, box, delivery_time, message, flags = None, boxes = None, retry = None):
         if retry is None:
             retry = self.retry
+        if flags is None:
+            flags = []
         try:
             self.open()
-            self.imap.create(box)
-            if type(message) == str:
-                message = bytes(message, 'utf-8')
-            return self.imap.append(box, [], delivery_time, message)
+            if boxes is not None: # Google Takeout
+                if type(message) == str:
+                    message = bytes(message, 'utf-8')
+                try:
+                    self.create_folders(boxes)
+                    google_takeout_box = "/".join(boxes)
+                    res = self.imap.append(imap_utf7.encode(google_takeout_box), flags, delivery_time, message)
+                except:
+                    google_takeout_box = "/".join(boxes)
+                    res = self.imap.append(imap_utf7.encode(google_takeout_box), flags, delivery_time, message)
+                return res
+            else: # Default behaviour
+                self.imap.create(box)
+                if type(message) == str:
+                    message = bytes(message, 'utf-8')
+                return self.imap.append(box, flags, delivery_time, message)
         except (imaplib.IMAP4.abort, socket.error):
             self.close()
             if retry == 0:
                 raise
         print("(Reconnect)", end=' ')
         time.sleep(5)
-        return self.upload(box, delivery_time, message, retry - 1)
+        return self.upload(box, delivery_time, message, flags, boxes, retry - 1)
+
+    def create_folders(self, boxes):
+        i = 1
+        while i <= len(boxes):
+            google_takeout_box = "/".join(boxes[0:i])
+            if google_takeout_box != "INBOX":
+                try:
+                    # self.imap.enable("UTF8=ACCEPT")
+                    self.imap.create(imap_utf7.encode(google_takeout_box))
+                except:
+                    print ("Cannot create box %s" % google_takeout_box)
+            i += 1
 
     def open(self):
         if self.imap:
@@ -468,6 +558,11 @@ def main(args=None):
         recurse = options.pop("r")
         email_only_folders = options.pop("email_only_folders")
         separator = options.pop("folder_separator")
+        google_takeout = options.pop("google_takeout")
+        google_takeout_box_as_base_folder = options.pop("google_takeout_box_as_base_folder")
+        google_takeout_first_label = options.pop("google_takeout_first_label")
+        google_takeout_rename_label_ampersand = options.pop("google_takeout_rename_label_ampersand")
+
 
         # Connect to the server and login
         print("Connecting to %s:%s." % (options["host"], options["port"]))
@@ -489,7 +584,7 @@ def main(args=None):
                 src = mailbox.mbox(src, create=False)
                 if err:
                     err = mailbox.mbox(err)
-                upload(uploader, options["box"], src, err, time_fields)
+                upload(uploader, options["box"], src, err, time_fields, google_takeout)
             else:
                 recursive_upload(uploader, "", src, err, time_fields, email_only_folders, separator)
 
