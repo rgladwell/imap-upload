@@ -16,6 +16,7 @@ import time
 import unicodedata
 import urllib.request, urllib.parse, urllib.error
 import os
+import traceback
 from optparse import OptionParser
 from urllib.parse import urlparse
 
@@ -84,6 +85,8 @@ class MyOptionParser(OptionParser):
                         help="list all mail boxes in the IMAP server")
         self.add_option("--folder-separator", type="string",
                         help="change folder separator-character default")
+        self.add_option("--debug", action="store_true",
+                        help="Debug: Make some error messages more verbose.")
         self.set_defaults(host="localhost",
                           ssl=False,
                           r=False,
@@ -94,7 +97,9 @@ class MyOptionParser(OptionParser):
                           retry=0,
                           error=None,
                           time_fields=["from", "received", "date"],
-                          folder_separator="/")
+                          folder_separator="/",
+                          debug=False
+                          )
 
     def enable_gmail(self, option, opt_str, value, parser):
         parser.values.ssl = True
@@ -246,7 +251,7 @@ class Progress():
               (self.ok_count, self.total_count - self.ok_count))
 
 
-def upload(imap, box, src, err, time_fields):
+def upload(imap, box, src, err, time_fields, debug = False):
     print("Uploading to {}...".format(box))
     print("Counting the mailbox (it could take a while for the large one).")
     p = Progress(len(src))
@@ -262,7 +267,10 @@ def upload(imap, box, src, err, time_fields):
         except socket.error as e:
             p.endNg("Socket error: " + str(e))
         except Exception as e:
-            p.endNg(e)
+            if debug:
+                p.endNg(traceback.format_exc())
+            else:
+                p.endNg(e)
         if err is not None:
             err.add(msg)
     p.endAll()
@@ -468,6 +476,7 @@ def main(args=None):
         recurse = options.pop("r")
         email_only_folders = options.pop("email_only_folders")
         separator = options.pop("folder_separator")
+        debug = options.pop("debug")
 
         # Connect to the server and login
         print("Connecting to %s:%s." % (options["host"], options["port"]))
@@ -489,7 +498,7 @@ def main(args=None):
                 src = mailbox.mbox(src, create=False)
                 if err:
                     err = mailbox.mbox(err)
-                upload(uploader, options["box"], src, err, time_fields)
+                upload(uploader, options["box"], src, err, time_fields, debug)
             else:
                 recursive_upload(uploader, "", src, err, time_fields, email_only_folders, separator)
 
