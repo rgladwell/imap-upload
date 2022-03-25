@@ -575,6 +575,7 @@ class IMAPUploader:
             else: # Default behaviour
                 self.imap.create(box)
                 if type(message) == str:
+                    message = message.encode('utf-8', 'surrogateescape').decode('utf-8')
                     message = bytes(message, 'utf-8')
                 return self.imap.append(box, flags, delivery_time, message)
         except (imaplib.IMAP4.abort, socket.error):
