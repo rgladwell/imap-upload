@@ -256,6 +256,7 @@ class Progress():
                 gmail_unseen_str = u"No leídos"
                 gmail_category_str = r"^Categor.a:"
                 gmail_imap_str = r'^IMAP_'
+                gmail_trash_str = "Papelera"
             else:
                 gmail_inbox_str = r"Safata d'entrada"
                 gmail_sent_str = r"Enviats"
@@ -265,6 +266,7 @@ class Progress():
                 gmail_unseen_str = u"No llegits"
                 gmail_category_str = r"^Categor.a"
                 gmail_imap_str = r'^IMAP_'
+                gmail_trash_str = "Paperera"
             label = decode_header_to_string(msg["x-gmail-labels"] or "")
             label = re.sub(gmail_inbox_str, "INBOX", label)
             label = re.sub(gmail_sent_str, "Sent", label)
@@ -307,6 +309,10 @@ class Progress():
 
             if ((labels.count(gmail_sent_str) > 0) and (len(labels) > 1)):
                 labels.remove(gmail_sent_str)
+
+            if labels.count(gmail_trash_str) > 0:
+                labels.remove(gmail_trash_str)
+                labels.append('Trash')
 
             if len(labels):
                 msg.flags = " ".join(flags)
