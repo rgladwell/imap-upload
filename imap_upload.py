@@ -268,6 +268,11 @@ class Progress():
                 gmail_imap_str = r'^IMAP_'
                 gmail_trash_str = "Paperera"
             label = decode_header_to_string(msg["x-gmail-labels"] or "")
+            sanitized_label = re.sub(r"\n\r", "", label)
+            sanitized_label = re.sub(r"\r\n", "", sanitized_label)
+            sanitized_label = re.sub(r"\r", " ", sanitized_label)
+            sanitized_label = re.sub(r"\n", "", sanitized_label)
+            label = sanitized_label
             label = re.sub(gmail_inbox_str, "INBOX", label)
             label = re.sub(gmail_sent_str, "Sent", label)
             labels = label.split(",")
@@ -288,7 +293,8 @@ class Progress():
 
             sanitized_labels = []
             for i in range(len(labels)):
-                sanitized_labels.append(re.sub(r":", "_", labels[i]))
+                sanitized_label = re.sub(r":", "_", labels[i])
+                sanitized_labels.append(sanitized_label)
             labels = sanitized_labels
 
             if labels.count(gmail_open_str) > 0:
