@@ -573,11 +573,12 @@ class IMAPUploader:
                     res = self.imap.append(imap_utf7.encode(google_takeout_box_imap_command), flags, delivery_time, message)
                 return res
             else: # Default behaviour
-                self.imap.create(box)
+                box_imap_command = '"' + box + '"'
+                self.imap.create(box_imap_command)
                 if type(message) == str:
                     message = message.encode('utf-8', 'surrogateescape').decode('utf-8')
                     message = bytes(message, 'utf-8')
-                return self.imap.append(box, flags, delivery_time, message)
+                return self.imap.append(box_imap_command, flags, delivery_time, message)
         except (imaplib.IMAP4.abort, socket.error):
             self.close()
             if retry == 0:
