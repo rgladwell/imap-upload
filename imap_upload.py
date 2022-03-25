@@ -245,15 +245,26 @@ class Progress():
         self.time_began = time.time()
         size, prefix = si_prefix(float(len(msg.as_string())), threshold=0.8)
         sbj = decode_header_to_string(msg["subject"] or "")
+        google_takeout_language = "es"
         if self.google_takeout:
-            gmail_inbox_str = r"Recibidos"
-            gmail_sent_str = r"Enviados"
-            gmail_draft_str = "Borradores"
-            gmail_important_str = u'Importante'
-            gmail_open_str = u'Abierto'
-            gmail_unseen_str = u"No leídos"
-            gmail_category_str = r"^Categor.a:"
-            gmail_imap_str = r'^IMAP_'
+            if (google_takeout_language == "es"):
+                gmail_inbox_str = r"Recibidos"
+                gmail_sent_str = r"Enviados"
+                gmail_draft_str = "Borradores"
+                gmail_important_str = u'Importante'
+                gmail_open_str = u'Abierto'
+                gmail_unseen_str = u"No leídos"
+                gmail_category_str = r"^Categor.a:"
+                gmail_imap_str = r'^IMAP_'
+            else:
+                gmail_inbox_str = r"Safata d'entrada"
+                gmail_sent_str = r"Enviats"
+                gmail_draft_str = "Esborranys"
+                gmail_important_str = u'Importants'
+                gmail_open_str = u'Oberts'
+                gmail_unseen_str = u"No llegits"
+                gmail_category_str = r"^Categor.a"
+                gmail_imap_str = r'^IMAP_'
             label = decode_header_to_string(msg["x-gmail-labels"] or "")
             label = re.sub(gmail_inbox_str, "INBOX", label)
             label = re.sub(gmail_sent_str, "Sent", label)
