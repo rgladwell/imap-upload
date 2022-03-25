@@ -253,6 +253,7 @@ class Progress():
             gmail_open_str = u'Abierto'
             gmail_unseen_str = u"No leídos"
             gmail_category_str = u"Categor.a:"
+            gmail_imap_str = r'^IMAP_'
             label = decode_header_to_string(msg["x-gmail-labels"] or "")
             label = re.sub(gmail_inbox_str, "INBOX", label)
             label = re.sub(gmail_sent_str, "Sent", label)
@@ -264,6 +265,13 @@ class Progress():
                     labels_without_categories.append(labels[i])
 
             labels = labels_without_categories
+
+            labels_without_special_imap_dirs = []
+            for i in range(len(labels)):
+                if (not (re.match(gmail_imap_str,labels[i]))):
+                    labels_without_special_imap_dirs.append(labels[i])
+
+            labels = labels_without_special_imap_dirs
 
             sanitized_labels = []
             for i in range(len(labels)):
