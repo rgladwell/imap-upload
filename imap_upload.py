@@ -286,6 +286,9 @@ class Progress():
                 flags.append('\Flagged')
                 labels.remove(gmail_important_str)
 
+            if ((labels.count(gmail_sent_str) > 0) and (len(labels) > 1)):
+                labels.remove(gmail_sent_str)
+
             if len(labels):
                 msg.flags = " ".join(flags)
             else:
