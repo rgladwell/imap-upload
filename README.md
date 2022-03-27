@@ -21,7 +21,8 @@ IMAP Upload is a tool for uploading a local mbox file to IMAP4 server. The most 
 
 ### Requirements
 
-*   Python 2.5 or later.
+*   Python 3.5 or later.
+*   imapclient ( `pip3 install imapclient` )
 
 ### Quick Start
 
@@ -100,8 +101,64 @@ Some email providers use alternative IMAP folder separators (for example, Hetzne
 python imap_upload.py -r path --folder-separator '.' --email-only-folders
 ```
 
+Google Takeout example:
+```sh
+python imap_upload.py --ssl --user=login@example.net --password=MyS3cr3t --host=mail.example.net --port=993 --error='All mail Including Spam and Trash_errors.mbox' --google-takeout 'All mail Including Spam and Trash.mbox'
+```
+
 For more details, please refer to the --help message:
 
 ```sh
 python imap_upload.py --help
+```
+
+### Usage
+
+```
+Usage: python imap_upload.py [options] (MBOX|-r MBOX_FOLDER) [DEST]
+  MBOX UNIX style mbox file.
+  MBOX_FOLDER folder containing subfolder trees of mbox files
+  DEST is imap[s]://[USER[:PASSWORD]@]HOST[:PORT][/BOX]
+  DEST has a priority over the options.
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -r                    recursively search sub-folders
+  --gmail               setup for Gmail. Equivalents to --host=imap.gmail.com
+                        --port=993 --ssl --retry=3
+  --office365           setup for Office365. Equivalents to
+                        --host=outlook.office365.com --port=993 --ssl
+                        --retry=3
+  --fastmail            setup for Fastmail hosted IMAP. Equivalent to
+                        --host=imap.fastmail.com --port=993 --ssl --retry=3
+  --email-only-folders  use for servers that do not allow storing emails and
+                        subfolders in the same folderonly works with -r
+  --host=HOST           destination hostname [default: localhost]
+  --port=PORT           destination port number [default: 143, 993 for SSL]
+  --ssl                 use SSL connection
+  --box=BOX             destination mail box name [default: INBOX]
+  --user=USER           login name [default: empty]
+  --password=PASSWORD   login password
+  --retry=COUNT         retry COUNT times on connection abort. 0 disables
+                        [default: 0]
+  --error=ERR_MBOX      append failured messages to the file ERR_MBOX
+  --time-fields=LIST    try to get delivery time of message from the fields in
+                        the LIST. Specify any of "from", "received" and "date"
+                        separated with comma in order of priority (e.g.
+                        "date,received"). "from" is From_ line of mbox format.
+                        "received" is "Received:" field and "date" is "Date:"
+                        field in RFC 2822. [default: from,received,date]
+  --list_boxes          list all mail boxes in the IMAP server
+  --folder-separator=FOLDER_SEPARATOR
+                        change folder separator-character default
+  --google-takeout      Import Google Takeout using labels as folders.
+  --google-takeout-box-as-base-folder
+                        Use given box as base folder.
+  --google-takeout-first-label
+                        Only import first label from the email.
+  --google-takeout-language=GOOGLE_TAKEOUT_LANGUAGE
+                        [Use specific language. Supported languages: 'en es
+                        ca'. default: en]
+  --debug               Debug: Make some error messages more verbose.
 ```
