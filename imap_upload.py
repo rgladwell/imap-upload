@@ -17,6 +17,8 @@ import unicodedata
 import urllib.request, urllib.parse, urllib.error
 import os
 import traceback
+import io
+import csv
 from optparse import OptionParser
 from urllib.parse import urlparse
 from imapclient import imap_utf7
@@ -295,7 +297,13 @@ class Progress():
             label = sanitized_label
             label = re.sub(gmail_inbox_str, "INBOX", label)
             label = re.sub(gmail_sent_str, "Sent", label)
-            labels = label.split(",")
+
+            csv_file = io.StringIO(label)
+            csv_reader = csv.reader(csv_file, delimiter=',', quotechar='"')
+            labels = []
+            for csv_line in csv_reader:
+                for csv_label in csv_line:
+                    labels.append(csv_label)
 
             labels_without_categories = []
             for i in range(len(labels)):
