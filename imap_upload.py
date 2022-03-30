@@ -577,8 +577,8 @@ class IMAPUploader:
                 return self.imap.append(imap_utf7.encode(google_takeout_box_imap_command), flags, delivery_time, message)
             else: # Default behaviour
                 box_imap_command = '"' + box + '"'
-                self.imap_create(box_imap_command)
-                return self.imap.append(box_imap_command, flags, delivery_time, message)
+                self.imap_create(imap_utf7.encode(box_imap_command))
+                return self.imap.append(imap_utf7.encode(box_imap_command), flags, delivery_time, message)
         except (imaplib.IMAP4.abort, socket.error):
             self.close()
             if retry == 0:
