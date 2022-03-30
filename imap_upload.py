@@ -558,6 +558,7 @@ class IMAPUploader:
         self.password = password
         self.retry = retry
         self.box = box
+        self.created_directories_cache = []
 
     def upload(self, box, delivery_time, message, flags = None, google_takeout_box_path = None, retry = None):
         if retry is None:
@@ -582,7 +583,7 @@ class IMAPUploader:
                 return res
             else: # Default behaviour
                 box_imap_command = '"' + box + '"'
-                self.imap.create(box_imap_command)
+                self.imap_create(box_imap_command)
                 if type(message) == str:
                     message = message.encode('utf-8', 'surrogateescape').decode('utf-8')
                     message = bytes(message, 'utf-8')
@@ -602,10 +603,14 @@ class IMAPUploader:
             google_takeout_box_imap_command = '"' + google_takeout_box + '"'
             if google_takeout_box != "INBOX":
                 try:
-                    self.imap.create(imap_utf7.encode(google_takeout_box_imap_command))
+                    self.imap_create(imap_utf7.encode(google_takeout_box_imap_command))
                 except:
                     print ("Cannot create box %s" % google_takeout_box)
             i += 1
+    def imap_create(self, box):
+        if box not in self.created_directories_cache:
+            self.imap.create(box)
+            self.created_directories_cache.append(box)
 
     def open(self):
         if self.imap:
@@ -614,9 +619,10 @@ class IMAPUploader:
         self.imap = imap_class(self.host, self.port)
         self.imap.socket().settimeout(60)
         self.imap.login(self.user, self.password)
+        self.created_directories_cache = []
 
         try:
-            self.imap.create(self.box)
+            self.imap_create(self.box)
         except Exception as e:
             print("(create error: )" + str(e))
 
