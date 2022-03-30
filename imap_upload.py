@@ -567,11 +567,10 @@ class IMAPUploader:
             flags = []
         try:
             self.open()
+            if type(message) == str:
+                message = message.encode('utf-8', 'surrogateescape').decode('utf-8')
+                message = bytes(message, 'utf-8')
             if google_takeout_box_path is not None: # Google Takeout
-                if type(message) == str:
-                    message = message.encode('utf-8', 'surrogateescape').decode('utf-8')
-                    message = bytes(message, 'utf-8')
-
                 self.create_folder(google_takeout_box_path)
                 google_takeout_box = "/".join(google_takeout_box_path)
                 google_takeout_box_imap_command = '"' + google_takeout_box + '"'
@@ -579,9 +578,6 @@ class IMAPUploader:
             else: # Default behaviour
                 box_imap_command = '"' + box + '"'
                 self.imap_create(box_imap_command)
-                if type(message) == str:
-                    message = message.encode('utf-8', 'surrogateescape').decode('utf-8')
-                    message = bytes(message, 'utf-8')
                 return self.imap.append(box_imap_command, flags, delivery_time, message)
         except (imaplib.IMAP4.abort, socket.error):
             self.close()
