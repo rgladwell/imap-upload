@@ -395,7 +395,7 @@ def upload(imap, box, src, err, time_fields, google_takeout = False, google_take
     print("Uploading to {}...".format(box))
     print("Counting the mailbox (it could take a while for the large one).")
     p = Progress(len(src), google_takeout=google_takeout, google_takeout_first_label=google_takeout_first_label, google_takeout_language=google_takeout_language)
-    for i, msg in src.items():
+    for i, msg in src.iteritems():
         try:
             p.begin(msg)
             if google_takeout:
