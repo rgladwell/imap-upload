@@ -468,6 +468,7 @@ def has_mixed_content(src):
 
 def pretty_print_mailboxes(boxes):
     for box in boxes:
+        box = imap_utf7.decode(box)
         x = re.search("\(((\\\\[A-Za-z]+\s*)+)\) \"(.*)\" \"?(.*)\"?",box)
         if not x:
             print("Could not parse: {}".format(box))
