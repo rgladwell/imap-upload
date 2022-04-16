@@ -158,8 +158,6 @@ class MyOptionParser(OptionParser):
             self.error("--google-takeout-box-as-base-folder needs --google-takeout option")
         if ((options.google_takeout_first_label) and (not (options.google_takeout))):
             self.error("--google-takeout-first-label needs --google-takeout option")
-        if ((options.google_takeout_language) and (not (options.google_takeout))):
-            self.error("--google-takeout-language needs --google-takeout option")
         if (not (options.google_takeout_language in self.google_takeout_supported_languages)):
             self.error("--google-takeout-language: '%s' is not a supported language. Supported languages: '%s'." % (options.google_takeout_language, " ".join(self.google_takeout_supported_languages)))
         if options.port is None:
