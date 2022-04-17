@@ -36,7 +36,7 @@ class MyOptionParser(OptionParser):
                 "  MBOX_FOLDER folder containing subfolder trees of mbox files\n"\
                 "  DEST is imap[s]://[USER[:PASSWORD]@]HOST[:PORT][/BOX]\n"\
                 "  DEST has a priority over the options."
-        self.google_takeout_supported_languages = [ "en", "es", "ca" ]
+        self.google_takeout_supported_languages = [ "en", "es", "ca", "de" ]
         OptionParser.__init__(self, usage,
                               version="IMAP Upload " + __version__)
         self.add_option("-r", action="store_true",
@@ -287,6 +287,16 @@ class Progress():
                 gmail_category_str = r"^Categor.a"
                 gmail_imap_str = r'^IMAP_'
                 gmail_trash_str = "Paperera"
+            elif (self.google_takeout_language == "de"):
+                gmail_inbox_str = r"Posteingang"
+                gmail_sent_str = r"Gesendet"
+                gmail_draft_str = "Entwürfe"
+                gmail_important_str = u'Wichtig'
+                gmail_open_str = u'Geöffnet'
+                gmail_unseen_str = u"Ungelesen"
+                gmail_category_str = r"^Kategorie_"
+                gmail_imap_str = r'^IMAP_'
+                gmail_trash_str = "Papierkorb"
             label = decode_header_to_string(msg["x-gmail-labels"] or "")
             sanitized_label = re.sub(r"\n\r", "", label)
             sanitized_label = re.sub(r"\r\n", "", sanitized_label)
