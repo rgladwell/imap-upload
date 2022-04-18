@@ -101,10 +101,17 @@ Some email providers use alternative IMAP folder separators (for example, Hetzne
 python imap_upload.py -r path --folder-separator '.' --email-only-folders
 ```
 
-Google Takeout example:
+Google Takeout example (might duplicates mails):
 ```sh
 python imap_upload.py --ssl --user=login@example.net --password=MyS3cr3t --host=mail.example.net --port=993 --error='All mail Including Spam and Trash_errors.mbox' --google-takeout 'All mail Including Spam and Trash.mbox'
 ```
+
+Google Takeout example using only one label per mail:
+```sh
+python imap_upload.py --ssl --user=login@example.net --password=MyS3cr3t --host=mail.example.net --port=993 --error='All mail Including Spam and Trash_errors.mbox' --google-takeout --google-take-out-one-label 'All mail Including Spam and Trash.mbox'
+```
+
+
 
 For more details, please refer to the --help message:
 
@@ -157,8 +164,12 @@ Options:
                         Use given box as base folder.
   --google-takeout-first-label
                         Only import first label from the email.
+  --google-takeout-label-priority=GOOGLE_TAKEOUT_LABEL_PRIORITY
+                        Priority of labels, if --google-takeout-first-label is
+                        used
   --google-takeout-language=GOOGLE_TAKEOUT_LANGUAGE
-                        [Use specific language. Supported languages: 'en es
-                        ca'. default: en]
+                        [Use specific language. Supported languages: 'en es ca
+                        de'. default: en]
   --debug               Debug: Make some error messages more verbose.
 ```
+
