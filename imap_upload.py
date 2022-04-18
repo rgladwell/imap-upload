@@ -558,7 +558,7 @@ mailbox.mboxMessage.get_delivery_time = get_delivery_time
 
 
 class IMAPUploader:
-    def __init__(self, host, port, ssl, box, user, password, retry):
+    def __init__(self, host, port, ssl, box, user, password, retry, folder_separator):
         self.imap = None
         self.host = host
         self.port = port
@@ -568,6 +568,7 @@ class IMAPUploader:
         self.retry = retry
         self.box = box
         self.created_directories_cache = []
+        self.separator = folder_separator
 
     def upload(self, box, delivery_time, message, flags = None, google_takeout_box_path = None, retry = None):
         if retry is None:
@@ -581,7 +582,7 @@ class IMAPUploader:
                 message = bytes(message, 'utf-8')
             if google_takeout_box_path is not None: # Google Takeout
                 self.create_folder(google_takeout_box_path)
-                google_takeout_box = "/".join(google_takeout_box_path)
+                google_takeout_box = self.separator.join(google_takeout_box_path)
                 google_takeout_box_imap_command = '"' + google_takeout_box + '"'
                 return self.imap.append(imap_utf7.encode(google_takeout_box_imap_command), flags, delivery_time, message)
             else: # Default behaviour
@@ -599,7 +600,7 @@ class IMAPUploader:
     def create_folder(self, google_takeout_box_path):
         i = 1
         while i <= len(google_takeout_box_path):
-            google_takeout_box = "/".join(google_takeout_box_path[0:i])
+            google_takeout_box = self.separator.join(google_takeout_box_path[0:i])
             google_takeout_box_imap_command = '"' + google_takeout_box + '"'
             if google_takeout_box != "INBOX":
                 try:
@@ -669,7 +670,7 @@ def main(args=None):
 
         recurse = options.pop("r")
         email_only_folders = options.pop("email_only_folders")
-        separator = options.pop("folder_separator")
+        separator = options["folder_separator"]
         google_takeout = options.pop("google_takeout")
         google_takeout_box_as_base_folder = options.pop("google_takeout_box_as_base_folder")
         google_takeout_first_label = options.pop("google_takeout_first_label")
