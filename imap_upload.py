@@ -721,10 +721,12 @@ def main(args=None):
         return 130
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
-        print("An unknown error has occurred [{}]: ".format(exc_tb.tb_lineno), e)
+        print("An unknown error has occurred [{}]: {}".format(exc_tb.tb_lineno), e)
         return 1
 
 
 if __name__ == "__main__":
     print("IMAP Upload (v{})".format(__version__))
-    sys.exit(main())
+    result = main()
+    sys.stdout.flush()
+    sys.exit(result)
