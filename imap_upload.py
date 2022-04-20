@@ -101,6 +101,8 @@ class MyOptionParser(OptionParser):
                         help="[Use specific language. Supported languages: '%s'. " % (" ".join(self.google_takeout_supported_languages)) + "default: %default]" )
         self.add_option("--debug", action="store_true",
                         help="Debug: Make some error messages more verbose.")
+        self.add_option("--dry-run", action="store_true",
+                        help="Do not perform IMAP writing actions")
         self.set_defaults(host="localhost",
                           ssl=False,
                           r=False,
@@ -117,7 +119,8 @@ class MyOptionParser(OptionParser):
                           google_takeout_first_label=False,
                           google_takeout_label_priority="",
                           google_takeout_language="en",
-                          debug=False
+                          debug=False,
+                          dry_run=False,
                           )
 
     def enable_gmail(self, option, opt_str, value, parser):
@@ -581,7 +584,7 @@ mailbox.mboxMessage.get_delivery_time = get_delivery_time
 
 
 class IMAPUploader:
-    def __init__(self, host, port, ssl, box, user, password, retry, folder_separator):
+    def __init__(self, host, port, ssl, box, user, password, retry, folder_separator, dry_run):
         self.imap = None
         self.host = host
         self.port = port
@@ -592,6 +595,7 @@ class IMAPUploader:
         self.box = box
         self.created_directories_cache = []
         self.separator = folder_separator
+        self.dry_run = dry_run
 
     def upload(self, box, delivery_time, message, flags = None, google_takeout_box_path = None, retry = None):
         if retry is None:
@@ -636,11 +640,25 @@ class IMAPUploader:
             self.imap.create(box)
             self.created_directories_cache.append(box)
 
+    def enable_dry_run(self):
+        def dummy_create(a):
+            print(f"Called create with {a}")
+            return True
+
+        def dummy_append(a, b, c, d):
+            print(f"Called append with '{a}'")
+            return ("OK", "")
+
+        self.imap.create = dummy_create
+        self.imap.append = dummy_append
+
     def open(self):
         if self.imap:
             return
         imap_class = [imaplib.IMAP4, imaplib.IMAP4_SSL][self.ssl]
         self.imap = imap_class(self.host, self.port)
+        if self.dry_run:
+            self.enable_dry_run()
         self.imap.socket().settimeout(60)
         self.imap.login(self.user, self.password)
         self.created_directories_cache = []
