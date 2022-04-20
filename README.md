@@ -122,6 +122,7 @@ python imap_upload.py --help
 ### Usage
 
 ```
+IMAP Upload (v2.0.0)
 Usage: python imap_upload.py [options] (MBOX|-r MBOX_FOLDER) [DEST]
   MBOX UNIX style mbox file.
   MBOX_FOLDER folder containing subfolder trees of mbox files
@@ -171,5 +172,6 @@ Options:
                         [Use specific language. Supported languages: 'en es ca
                         de'. default: en]
   --debug               Debug: Make some error messages more verbose.
+  --dry-run             Do not perform IMAP writing actions
 ```
 
