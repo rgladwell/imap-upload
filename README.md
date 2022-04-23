@@ -171,6 +171,9 @@ Options:
   --google-takeout-language=GOOGLE_TAKEOUT_LANGUAGE
                         [Use specific language. Supported languages: 'en es ca
                         de'. default: en]
+  --google-takeout-flagged-labels=GOOGLE_TAKEOUT_FLAGGED_LABELS
+                        Mark Mails with given labels (comma separated) as
+                        flagged, by default the Important flag is used
   --debug               Debug: Make some error messages more verbose.
   --dry-run             Do not perform IMAP writing actions
 ```

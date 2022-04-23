@@ -99,6 +99,8 @@ class MyOptionParser(OptionParser):
                         help="Priority of labels, if --google-takeout-first-label is used")
         self.add_option("--google-takeout-language",
                         help="[Use specific language. Supported languages: '%s'. " % (" ".join(self.google_takeout_supported_languages)) + "default: %default]" )
+        self.add_option("--google-takeout-flagged-labels", type="string",
+                        help="Mark Mails with given labels (comma separated) as flagged, by default the Important flag is used. Labels have to be specified according to the language of your export")
         self.add_option("--debug", action="store_true",
                         help="Debug: Make some error messages more verbose.")
         self.add_option("--dry-run", action="store_true",
@@ -119,7 +121,8 @@ class MyOptionParser(OptionParser):
                           google_takeout_first_label=False,
                           google_takeout_label_priority="",
                           google_takeout_language="en",
-                          debug=False,
+                          google_takeout_flagged_labels="",
+                          debug=False
                           dry_run=False,
                           )
 
@@ -250,7 +253,7 @@ class Progress():
     """Store and output progress information."""
 
     def __init__(self, total_count, google_takeout=False, google_takeout_first_label=False,
-                 google_takeout_label_priority=None, google_takeout_language="en"):
+                 google_takeout_label_priority=None, google_takeout_language="en", google_takeout_flagged_labels=""):
         self.total_count = total_count
         self.ok_count = 0
         self.count = 0
@@ -260,6 +263,7 @@ class Progress():
         self.google_takeout_first_label = google_takeout_first_label
         self.google_takeout_label_priority = google_takeout_label_priority
         self.google_takeout_language = google_takeout_language
+        self.google_takeout_flagged_labels = google_takeout_flagged_labels.split(',')
 
     def begin(self, msg):
         """Called when start proccessing of a new message."""
@@ -355,9 +359,13 @@ class Progress():
             else:
                 flags.append('\Seen')
 
-            if labels.count(gmail_important_str) > 0:
-                flags.append('\Flagged')
-                labels.remove(gmail_important_str)
+            if len(self.google_takeout_flagged_labels) == 0:
+                self.google_takeout_flagged_labels = [gmail_important_str]
+
+            for label in self.google_takeout_flagged_labels:
+                if labels.count(label) > 0:
+                    flags.append('\Flagged')
+                    labels.remove(label)
 
             if ((labels.count(gmail_sent_str) > 0) and (len(labels) > 1)):
                 labels.remove(gmail_sent_str)
@@ -422,13 +430,14 @@ class Progress():
 
 
 def upload(imap, box, src, err, time_fields, google_takeout=False, google_takeout_first_label=False,
-           google_takeout_label_priority=None, google_takeout_box_as_base_folder=False, google_takeout_language="en",
-           debug=False):
+           google_takeout_label_priority=None, google_takeout_box_as_base_folder=False, google_takeout_language="en", 
+           google_takeout_flagged_labels="", debug=False):
     print("Uploading to {}...".format(box))
     print("Counting the mailbox (it could take a while for the large one).")
     p = Progress(len(src), google_takeout=google_takeout, google_takeout_first_label=google_takeout_first_label,
                  google_takeout_label_priority=google_takeout_label_priority,
-                 google_takeout_language=google_takeout_language)
+                 google_takeout_language=google_takeout_language,
+                 google_takeout_flagged_labels=google_takeout_flagged_labels)
     for i, msg in src.iteritems():
         try:
             p.begin(msg)
@@ -717,6 +726,7 @@ def main(args=None):
         google_takeout_first_label = options.pop("google_takeout_first_label")
         google_takeout_label_priority = options.pop("google_takeout_label_priority").split(",")
         google_takeout_language = options.pop("google_takeout_language")
+        google_takeout_flagged_labels = options.pop("google_takeout_flagged_labels")
         debug = options.pop("debug")
 
 
@@ -741,7 +751,8 @@ def main(args=None):
                 if err:
                     err = mailbox.mbox(err)
                 upload(uploader, options["box"], src, err, time_fields, google_takeout, google_takeout_first_label,
-                       google_takeout_label_priority, google_takeout_box_as_base_folder, google_takeout_language, debug)
+                       google_takeout_label_priority, google_takeout_box_as_base_folder, google_takeout_language, 
+                       google_takeout_flagged_labels, debug)
             else:
                 recursive_upload(uploader, "", src, err, time_fields, email_only_folders, separator)
 
