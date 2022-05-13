@@ -213,10 +213,16 @@ def decode_header_to_string(header):
     """Decodes an email message header (possibly RFC2047-encoded)
     into a string, while working around https://bugs.python.org/issue22833"""
 
+    def _decode(value, encoding):
+        if isinstance(value, str):
+            return value
+        if ((not encoding) or (encoding == 'unknown-8bit')):
+            encoding = 'ascii'
+        return value.decode(encoding, 'replace')
+
     return "".join(
-        alleged_string if isinstance(alleged_string, str) else alleged_string.decode(
-            alleged_charset or 'ascii')
-        for alleged_string, alleged_charset in email.header.decode_header(header))
+        _decode(bytestr, encoding)
+        for bytestr, encoding in email.header.decode_header(header))
 
 all_chars = (chr(i) for i in range(sys.maxunicode))
 categories = {'Cc', 'Cf', 'Cs', 'Co', 'Cn'}
