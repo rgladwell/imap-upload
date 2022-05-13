@@ -29,6 +29,24 @@ if sys.version_info < (3, 5):
     print("IMAP Upload requires Python 3.5 or later.")
     sys.exit(1)
 
+# Avoid "KeyError: 'content-transfer-encoding'" error.
+# Inspired from https://github.com/python/cpython/issues/71508#issuecomment-1093718177
+# This workaround might no longer needed when python 3.10 is a minimum version
+# That way you could just use msg.as_string()
+class ImapUploadMessage(email.message.Message):
+
+    @staticmethod
+    def as_string(self):
+        # Work around for https://bugs.python.org/issue27321 and
+        # https://bugs.python.org/issue32330.
+        try:
+            value = email.message.Message.as_string(self)
+        except (KeyError, LookupError, UnicodeEncodeError):
+            value = email.message.Message.as_bytes(self).decode(
+                'ascii', 'replace')
+        # Also ensure no unicode surrogates in the returned string.
+        return email.utils._sanitize(value)
+
 class MyOptionParser(OptionParser):
     def __init__(self):
         usage = "usage: python %prog [options] (MBOX|-r MBOX_FOLDER) [DEST]\n"\
@@ -255,7 +273,7 @@ class Progress():
     def begin(self, msg):
         """Called when start proccessing of a new message."""
         self.time_began = time.time()
-        size, prefix = si_prefix(float(len(msg.as_string())), threshold=0.8)
+        size, prefix = si_prefix(float(len(ImapUploadMessage.as_string(msg))), threshold=0.8)
         sbj = decode_header_to_string(msg["subject"] or "")
         if self.google_takeout:
             if (self.google_takeout_language == "en"):
@@ -441,7 +459,7 @@ def upload(imap, box, src, err, time_fields, google_takeout=False, google_takeou
                     msg_boxes = msg.boxes
                 for i in range(len(msg_boxes)):
                     r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
-                                        msg.as_string(), msg.flags, msg_boxes[i], 3)
+                                        ImapUploadMessage.as_string(msg), msg.flags, msg_boxes[i], 3)
                     if r != "OK":
                         raise Exception(r2[0]) # FIXME: Should use custom class
             else:
