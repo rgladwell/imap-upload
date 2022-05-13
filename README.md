@@ -171,6 +171,9 @@ Options:
   --google-takeout-language=GOOGLE_TAKEOUT_LANGUAGE
                         [Use specific language. Supported languages: 'en es ca
                         de'. default: en]
+  --maximum-size-exceeded-are-warnings
+                        Treat 'maximum size exceeded messages' as warnings and
+                        not as errors.
   --debug               Debug: Make some error messages more verbose.
   --dry-run             Do not perform IMAP writing actions
 ```
