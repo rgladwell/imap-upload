@@ -418,12 +418,13 @@ class Progress():
 
     def endWarning(self, err):
         """Called when a warning has occurred while processing a message."""
+        self.warning_count += 1
         print("WARNING (%s)" % err)
 
     def endAll(self):
         """Called when all message was processed."""
-        print("Done. (OK: %d, ERROR: %d)" % \
-              (self.ok_count, self.total_count - self.ok_count))
+        print("Done. (OK: %d, WARNING: %d, ERROR: %d)" % \
+              (self.ok_count, self.warning_count, (self.total_count - self.ok_count - self.warning_count)))
 
 
 def upload(imap, box, src, err, time_fields, google_takeout=False, google_takeout_first_label=False,
@@ -435,6 +436,7 @@ def upload(imap, box, src, err, time_fields, google_takeout=False, google_takeou
                  google_takeout_label_priority=google_takeout_label_priority,
                  google_takeout_language=google_takeout_language)
     for i, msg in src.iteritems():
+        maximumMessageSizeWarning = False
         try:
             p.begin(msg)
             if google_takeout:
@@ -463,11 +465,18 @@ def upload(imap, box, src, err, time_fields, google_takeout=False, google_takeou
         except socket.error as e:
             p.endError("Socket error: " + str(e))
         except Exception as e:
-            if debug:
-                p.endError(traceback.format_exc())
+            maximumMessageSizeWarning = re.search(r'maximum message size exceeded', repr(e))
+            if (maximumMessageSizeWarning):
+                if debug:
+                    p.endWarning(traceback.format_exc())
+                else:
+                    p.endWarning(e)
             else:
-                p.endError(e)
-        if err is not None:
+                if debug:
+                    p.endError(traceback.format_exc())
+                else:
+                    p.endError(e)
+        if ((err is not None) and (not maximumMessageSizeWarning)):
             err.add(msg)
     p.endAll()
 
