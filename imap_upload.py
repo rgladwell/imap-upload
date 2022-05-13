@@ -411,13 +411,13 @@ class Progress():
         print("OK (%d sec)" % \
               math.ceil(time.time() - self.time_began))
 
-    def endNg(self, err):
+    def endError(self, err):
         """Called when an error has occurred while processing a message."""
-        print("NG (%s)" % err)
+        print("ERROR (%s)" % err)
 
     def endAll(self):
         """Called when all message was processed."""
-        print("Done. (OK: %d, NG: %d)" % \
+        print("Done. (OK: %d, ERROR: %d)" % \
               (self.ok_count, self.total_count - self.ok_count))
 
 
@@ -456,12 +456,12 @@ def upload(imap, box, src, err, time_fields, google_takeout=False, google_takeou
             p.endOk()
             continue
         except socket.error as e:
-            p.endNg("Socket error: " + str(e))
+            p.endError("Socket error: " + str(e))
         except Exception as e:
             if debug:
-                p.endNg(traceback.format_exc())
+                p.endError(traceback.format_exc())
             else:
-                p.endNg(e)
+                p.endError(e)
         if err is not None:
             err.add(msg)
     p.endAll()
