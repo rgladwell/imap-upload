@@ -253,6 +253,7 @@ class Progress():
                  google_takeout_label_priority=None, google_takeout_language="en"):
         self.total_count = total_count
         self.ok_count = 0
+        self.warning_count = 0
         self.count = 0
         self.format = "%" + str(len(str(total_count))) + "d/" + \
                       str(total_count) + " %5.1f %-2s  %s  "
@@ -414,6 +415,10 @@ class Progress():
     def endError(self, err):
         """Called when an error has occurred while processing a message."""
         print("ERROR (%s)" % err)
+
+    def endWarning(self, err):
+        """Called when a warning has occurred while processing a message."""
+        print("WARNING (%s)" % err)
 
     def endAll(self):
         """Called when all message was processed."""
