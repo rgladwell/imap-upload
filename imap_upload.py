@@ -409,9 +409,9 @@ class Progress():
                 msg.boxes = []
                 msg.boxes.append(only_label)
 
-        print(self.format % \
-              (self.count + 1, size, prefix + "B", '{:30.30}'.format(remove_control_chars(sbj))),
-              "to [%s]" % (",".join(x[0] for x in msg.boxes)), end=' ')
+            print(self.format % \
+                  (self.count + 1, size, prefix + "B", '{:30.30}'.format(remove_control_chars(sbj))),
+                  "to [%s]" % (",".join(x[0] for x in msg.boxes)), end=' ')
 
     def get_label_by_prio(self, labels):
         labels = [label[0] for label in labels]
