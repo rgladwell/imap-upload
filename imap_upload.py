@@ -282,7 +282,7 @@ class Progress():
         self.google_takeout_language = google_takeout_language
 
     def begin(self, msg):
-        """Called when start proccessing of a new message."""
+        """Called when start processing of a new message."""
         self.time_began = time.time()
         size, prefix = si_prefix(float(len(ImapUploadMessage.as_string(msg))), threshold=0.8)
         sbj = decode_header_to_string(msg["subject"] or "")
