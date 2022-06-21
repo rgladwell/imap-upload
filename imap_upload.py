@@ -475,7 +475,7 @@ def upload(imap, box, src, err, time_fields, google_takeout=False, google_takeou
                         raise Exception(r2[0]) # FIXME: Should use custom class
             else:
                 r, r2 = imap.upload(box, msg.get_delivery_time(time_fields),
-                                    msg.as_string(), None, None, 3)
+                                    ImapUploadMessage.as_string(msg), None, None, 3)
                 if r != "OK":
                     raise Exception(r2[0]) # FIXME: Should use custom class
 
