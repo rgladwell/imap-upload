@@ -414,7 +414,7 @@ class Progress():
                   "to [%s]" % (",".join(x[0] for x in msg.boxes)), end=' ')
         else:
             print(self.format % \
-                (self.count + 1, size, prefix + "B", left_fit_width(sbj, 30)), end=' ')
+                (self.count + 1, size, prefix + "B", '{:30.30}'.format(remove_control_chars(sbj))), end=' ')
 
     def get_label_by_prio(self, labels):
         labels = [label[0] for label in labels]
