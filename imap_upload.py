@@ -503,8 +503,9 @@ def upload(imap, box, src, err, time_fields, google_takeout=False, google_takeou
     p.endAll()
 
 
-def recursive_upload(imap, box, src, err, time_fields, email_only_folders, separator):
+def recursive_upload(imap, box, src, err, time_fields, email_only_folders, separator, debug=False):
     usrc = str(src)
+    if debug: print("Visiting directory %s" % (usrc))
     for file in os.listdir(usrc):
         path = usrc + os.sep + file
         if os.path.isdir(path):
@@ -513,7 +514,7 @@ def recursive_upload(imap, box, src, err, time_fields, email_only_folders, separ
                 subbox = fileName
             else:
                 subbox = box + separator + fileName
-            recursive_upload(imap, subbox, path, err, time_fields, email_only_folders, separator)
+            recursive_upload(imap, subbox, path, err, time_fields, email_only_folders, separator, debug)
         elif file.endswith("mbox"):
             print("Found mailbox at {}...".format(path))
             mbox = mailbox.mbox(path, create=False)
@@ -524,6 +525,8 @@ def recursive_upload(imap, box, src, err, time_fields, email_only_folders, separ
             if err:
                 err = mailbox.mbox(err)
             upload(imap, target_box, mbox, err, time_fields)
+        else:
+            print("Skipping unknown file (no mbox ending): %s" % (file))
 
 def has_mixed_content(src):
     dirFound = False
@@ -765,12 +768,15 @@ def main(args=None):
 
             uploader = IMAPUploader(**options)
             uploader.open()
+            if debug: print("Connection successful")
+
             pretty_print_mailboxes(uploader.list_boxes())
         else:
             src = options.pop("src")
 
             uploader = IMAPUploader(**options)
             uploader.open()
+            if debug: print("Connection successful")
 
             if(not recurse):
                 # Prepare source and error mbox
@@ -780,7 +786,7 @@ def main(args=None):
                 upload(uploader, options["box"], src, err, time_fields, google_takeout, google_takeout_first_label,
                        google_takeout_label_priority, google_takeout_box_as_base_folder, google_takeout_language, debug, maximum_size_exceeded_are_warnings)
             else:
-                recursive_upload(uploader, "", src, err, time_fields, email_only_folders, separator)
+                recursive_upload(uploader, "", src, err, time_fields, email_only_folders, separator, debug)
 
         return 0
 
