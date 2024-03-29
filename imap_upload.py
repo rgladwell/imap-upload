@@ -525,6 +525,16 @@ def recursive_upload(imap, box, src, err, time_fields, email_only_folders, separ
             if err:
                 err = mailbox.mbox(err)
             upload(imap, target_box, mbox, err, time_fields)
+        elif file.endswith(".msf"):
+            print("Found Thunderbird mailbox at {}...".format(path))
+            mbox = mailbox.mbox(path.replace(".msf",""), create=False)
+            if (email_only_folders and has_mixed_content(src)):
+                target_box = box + separator + src.split(os.sep)[-1]
+            else:
+                target_box = file.split('.')[0] if (box is None or box == "") else box
+            if err:
+                err = mailbox.mbox(err)
+            upload(imap, target_box, mbox, err, time_fields)
         else:
             print("Skipping unknown file (no mbox ending): %s" % (file))
 
