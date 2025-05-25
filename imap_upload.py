@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # coding=utf-8
+"""A tool to upload email to IMAP mailboxes."""
 import codecs
 import email
 import email.header

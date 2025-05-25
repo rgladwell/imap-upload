@@ -1,0 +1,23 @@
+[project]
+name = "imap-upload"
+dynamic = ["version", "description"]
+dependencies = [
+  "IMAPClient>=2.2.0,<3",
+]
+requires-python = ">= 3.5"
+readme = "README.md"
+license = "MIT"
+license-files = ["License.txt"]
+
+[project.urls]
+Repository = "https://github.com/rgladwell/imap-upload"
+
+[project.scripts]
+imap-upload = "imap_upload:main"
+
+[build-system]
+requires = ["flit_core>=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.module]
+name = "imap_upload"
